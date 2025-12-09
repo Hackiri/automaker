@@ -33,5 +33,23 @@
     "description": "-o should actually open the select folder prompt. Right now when you click o it goes to like the overview page. That's not the correct experience I'm looking for. Also just clicking on the top left open folder icon should do the same thing of opening the system prompt so they can select a project.",
     "steps": [],
     "status": "verified"
+  },
+  {
+    "id": "feature-1765305181443-qze22t1hl",
+    "category": "Other",
+    "description": "the settings view is not allowing us to scroll to see rest of the content ",
+    "steps": [
+      "start the project",
+      "open Setting view",
+      "try to scroll "
+    ],
+    "status": "verified"
+  },
+  {
+    "id": "feature-1765310151816-plx1pxl0z",
+    "category": "Kanban",
+    "description": "So i want to improve the look of the view of agent output modal its just plain text and im thinking to parse it better and kinda make it look like the last image of coolify logs nice colorded and somehow grouped into some types of info / debug so in our case like prompt / tool call etc",
+    "steps": [],
+    "status": "verified"
   }
 ]

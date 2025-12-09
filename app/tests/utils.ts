@@ -1860,3 +1860,265 @@ export async function isDropOverlayVisible(page: Page): Promise<boolean> {
   const overlay = page.locator('[data-testid="drop-overlay"]');
   return await overlay.isVisible().catch(() => false);
 }
+
+/**
+ * Navigate to the settings view
+ */
+export async function navigateToSettings(page: Page): Promise<void> {
+  await page.goto("/");
+
+  // Wait for the page to load
+  await page.waitForLoadState("networkidle");
+
+  // Click on the Settings button in the sidebar
+  const settingsButton = page.locator('[data-testid="settings-button"]');
+  if (await settingsButton.isVisible().catch(() => false)) {
+    await settingsButton.click();
+  }
+
+  // Wait for the settings view to be visible
+  await waitForElement(page, "settings-view", { timeout: 10000 });
+}
+
+/**
+ * Get the settings view scrollable content area
+ */
+export async function getSettingsContentArea(page: Page): Promise<Locator> {
+  return page.locator('[data-testid="settings-view"] .overflow-y-auto');
+}
+
+/**
+ * Check if an element is scrollable (has scrollable content)
+ */
+export async function isElementScrollable(locator: Locator): Promise<boolean> {
+  const scrollInfo = await locator.evaluate((el) => {
+    return {
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+      isScrollable: el.scrollHeight > el.clientHeight,
+    };
+  });
+  return scrollInfo.isScrollable;
+}
+
+/**
+ * Scroll an element to the bottom
+ */
+export async function scrollToBottom(locator: Locator): Promise<void> {
+  await locator.evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+  });
+}
+
+/**
+ * Get the scroll position of an element
+ */
+export async function getScrollPosition(locator: Locator): Promise<{ scrollTop: number; scrollHeight: number; clientHeight: number }> {
+  return await locator.evaluate((el) => ({
+    scrollTop: el.scrollTop,
+    scrollHeight: el.scrollHeight,
+    clientHeight: el.clientHeight,
+  }));
+}
+
+/**
+ * Check if an element is visible within a scrollable container
+ */
+export async function isElementVisibleInScrollContainer(
+  element: Locator,
+  container: Locator
+): Promise<boolean> {
+  const elementBox = await element.boundingBox();
+  const containerBox = await container.boundingBox();
+
+  if (!elementBox || !containerBox) {
+    return false;
+  }
+
+  // Check if element is within the visible area of the container
+  return (
+    elementBox.y >= containerBox.y &&
+    elementBox.y + elementBox.height <= containerBox.y + containerBox.height
+  );
+}
+
+// ============ Log Viewer Utilities ============
+
+/**
+ * Get the log viewer header element (contains type counts and expand/collapse buttons)
+ */
+export async function getLogViewerHeader(page: Page): Promise<Locator> {
+  return page.locator('[data-testid="log-viewer-header"]');
+}
+
+/**
+ * Check if the log viewer header is visible
+ */
+export async function isLogViewerHeaderVisible(page: Page): Promise<boolean> {
+  const header = page.locator('[data-testid="log-viewer-header"]');
+  return await header.isVisible().catch(() => false);
+}
+
+/**
+ * Get the log entries container element
+ */
+export async function getLogEntriesContainer(page: Page): Promise<Locator> {
+  return page.locator('[data-testid="log-entries-container"]');
+}
+
+/**
+ * Get a log entry by its type
+ */
+export async function getLogEntryByType(
+  page: Page,
+  type: string
+): Promise<Locator> {
+  return page.locator(`[data-testid="log-entry-${type}"]`).first();
+}
+
+/**
+ * Get all log entries of a specific type
+ */
+export async function getAllLogEntriesByType(
+  page: Page,
+  type: string
+): Promise<Locator> {
+  return page.locator(`[data-testid="log-entry-${type}"]`);
+}
+
+/**
+ * Count log entries of a specific type
+ */
+export async function countLogEntriesByType(
+  page: Page,
+  type: string
+): Promise<number> {
+  const entries = page.locator(`[data-testid="log-entry-${type}"]`);
+  return await entries.count();
+}
+
+/**
+ * Get the log type count badge by type
+ */
+export async function getLogTypeCountBadge(
+  page: Page,
+  type: string
+): Promise<Locator> {
+  return page.locator(`[data-testid="log-type-count-${type}"]`);
+}
+
+/**
+ * Check if a log type count badge is visible
+ */
+export async function isLogTypeCountBadgeVisible(
+  page: Page,
+  type: string
+): Promise<boolean> {
+  const badge = page.locator(`[data-testid="log-type-count-${type}"]`);
+  return await badge.isVisible().catch(() => false);
+}
+
+/**
+ * Click the expand all button in the log viewer
+ */
+export async function clickLogExpandAll(page: Page): Promise<void> {
+  await clickElement(page, "log-expand-all");
+}
+
+/**
+ * Click the collapse all button in the log viewer
+ */
+export async function clickLogCollapseAll(page: Page): Promise<void> {
+  await clickElement(page, "log-collapse-all");
+}
+
+/**
+ * Get a log entry badge element
+ */
+export async function getLogEntryBadge(page: Page): Promise<Locator> {
+  return page.locator('[data-testid="log-entry-badge"]').first();
+}
+
+/**
+ * Check if any log entry badge is visible
+ */
+export async function isLogEntryBadgeVisible(page: Page): Promise<boolean> {
+  const badge = page.locator('[data-testid="log-entry-badge"]').first();
+  return await badge.isVisible().catch(() => false);
+}
+
+/**
+ * Get the view mode toggle button (parsed/raw)
+ */
+export async function getViewModeButton(
+  page: Page,
+  mode: "parsed" | "raw"
+): Promise<Locator> {
+  return page.locator(`[data-testid="view-mode-${mode}"]`);
+}
+
+/**
+ * Click a view mode toggle button
+ */
+export async function clickViewModeButton(
+  page: Page,
+  mode: "parsed" | "raw"
+): Promise<void> {
+  await clickElement(page, `view-mode-${mode}`);
+}
+
+/**
+ * Check if a view mode button is active (selected)
+ */
+export async function isViewModeActive(
+  page: Page,
+  mode: "parsed" | "raw"
+): Promise<boolean> {
+  const button = page.locator(`[data-testid="view-mode-${mode}"]`);
+  const classes = await button.getAttribute("class");
+  return classes?.includes("text-purple-300") ?? false;
+}
+
+/**
+ * Set up a mock project with agent output content in the context file
+ */
+export async function setupMockProjectWithAgentOutput(
+  page: Page,
+  featureId: string,
+  outputContent: string
+): Promise<void> {
+  await page.addInitScript(
+    ({ featureId, outputContent }: { featureId: string; outputContent: string }) => {
+      const mockProject = {
+        id: "test-project-1",
+        name: "Test Project",
+        path: "/mock/test-project",
+        lastOpened: new Date().toISOString(),
+      };
+
+      const mockState = {
+        state: {
+          projects: [mockProject],
+          currentProject: mockProject,
+          theme: "dark",
+          sidebarOpen: true,
+          apiKeys: { anthropic: "", google: "" },
+          chatSessions: [],
+          chatHistoryOpen: false,
+          maxConcurrency: 3,
+        },
+        version: 0,
+      };
+
+      localStorage.setItem("automaker-storage", JSON.stringify(mockState));
+
+      // Set up mock file system with output content for the feature
+      (window as any).__mockContextFile = {
+        featureId,
+        path: `/mock/test-project/.automaker/agents-context/${featureId}.md`,
+        content: outputContent,
+      };
+    },
+    { featureId, outputContent }
+  );
+}

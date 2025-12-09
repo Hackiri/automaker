@@ -89,7 +89,7 @@ export function SettingsView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col content-bg" data-testid="settings-view">
+    <div className="flex-1 flex flex-col overflow-hidden content-bg" data-testid="settings-view">
       {/* Header Section */}
       <div className="flex-shrink-0 border-b border-white/10 bg-zinc-950/50 backdrop-blur-md">
         <div className="px-8 py-6">

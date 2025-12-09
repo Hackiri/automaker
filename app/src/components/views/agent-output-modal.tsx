@@ -8,8 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, List, FileText } from "lucide-react";
 import { getElectronAPI } from "@/lib/electron";
+import { LogViewer } from "@/components/ui/log-viewer";
 
 interface AgentOutputModalProps {
   open: boolean;
@@ -20,6 +21,8 @@ interface AgentOutputModalProps {
   onNumberKeyPress?: (key: string) => void;
 }
 
+type ViewMode = "parsed" | "raw";
+
 export function AgentOutputModal({
   open,
   onClose,
@@ -29,6 +32,7 @@ export function AgentOutputModal({
 }: AgentOutputModalProps) {
   const [output, setOutput] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>("parsed");
   const scrollRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef(true);
   const projectPathRef = useRef<string>("");
@@ -202,10 +206,38 @@ export function AgentOutputModal({
         data-testid="agent-output-modal"
       >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Loader2 className="w-5 h-5 text-purple-500 animate-spin" />
-            Agent Output
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <Loader2 className="w-5 h-5 text-purple-500 animate-spin" />
+              Agent Output
+            </DialogTitle>
+            <div className="flex items-center gap-1 bg-zinc-900/50 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode("parsed")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  viewMode === "parsed"
+                    ? "bg-purple-500/20 text-purple-300 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                }`}
+                data-testid="view-mode-parsed"
+              >
+                <List className="w-3.5 h-3.5" />
+                Parsed
+              </button>
+              <button
+                onClick={() => setViewMode("raw")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  viewMode === "raw"
+                    ? "bg-purple-500/20 text-purple-300 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                }`}
+                data-testid="view-mode-raw"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                Raw
+              </button>
+            </div>
+          </div>
           <DialogDescription className="mt-1">
             {featureDescription}
           </DialogDescription>
@@ -225,6 +257,8 @@ export function AgentOutputModal({
             <div className="flex items-center justify-center h-full text-muted-foreground">
               No output yet. The agent will stream output here as it works.
             </div>
+          ) : viewMode === "parsed" ? (
+            <LogViewer output={output} />
           ) : (
             <div className="whitespace-pre-wrap break-words text-zinc-300">
               {output}
