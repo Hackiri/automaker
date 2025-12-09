@@ -410,10 +410,19 @@ export function BoardView() {
     const draggedFeature = features.find((f) => f.id === featureId);
     if (!draggedFeature) return;
 
-    // Only allow dragging from backlog
+    // Check if this is a running task (non-skipTests, TDD)
+    const isRunningTask = runningAutoTasks.includes(featureId);
+
+    // Determine if dragging is allowed based on status and skipTests
+    // - Backlog items can always be dragged
+    // - skipTests (non-TDD) items can be dragged between in_progress and verified
+    // - Non-skipTests (TDD) items that are in progress or verified cannot be dragged
     if (draggedFeature.status !== "backlog") {
-      console.log("[Board] Cannot drag feature that is already in progress or verified");
-      return;
+      // Only allow dragging in_progress/verified if it's a skipTests feature and not currently running
+      if (!draggedFeature.skipTests || isRunningTask) {
+        console.log("[Board] Cannot drag feature - TDD feature or currently running");
+        return;
+      }
     }
 
     let targetStatus: ColumnId | null = null;
@@ -432,8 +441,11 @@ export function BoardView() {
 
     if (!targetStatus) return;
 
-    // Check concurrency limit before moving to in_progress
-    if (targetStatus === "in_progress" && !autoMode.canStartNewTask) {
+    // Same column, nothing to do
+    if (targetStatus === draggedFeature.status) return;
+
+    // Check concurrency limit before moving to in_progress (only for backlog -> in_progress and if running agent)
+    if (targetStatus === "in_progress" && draggedFeature.status === "backlog" && !autoMode.canStartNewTask) {
       console.log("[Board] Cannot start new task - at max concurrency limit");
       toast.error("Concurrency limit reached", {
         description: `You can only have ${autoMode.maxConcurrency} task${autoMode.maxConcurrency > 1 ? "s" : ""} running at a time. Wait for a task to complete or increase the limit.`,
@@ -441,14 +453,38 @@ export function BoardView() {
       return;
     }
 
-    // Move the feature and set startedAt if moving to in_progress
-    if (targetStatus === "in_progress") {
-      // Update with startedAt timestamp
-      updateFeature(featureId, { status: targetStatus, startedAt: new Date().toISOString() });
-      console.log("[Board] Feature moved to in_progress, starting agent...");
-      await handleRunFeature(draggedFeature);
-    } else {
-      moveFeature(featureId, targetStatus);
+    // Handle different drag scenarios
+    if (draggedFeature.status === "backlog") {
+      // From backlog
+      if (targetStatus === "in_progress") {
+        // Update with startedAt timestamp
+        updateFeature(featureId, { status: targetStatus, startedAt: new Date().toISOString() });
+        console.log("[Board] Feature moved to in_progress, starting agent...");
+        await handleRunFeature(draggedFeature);
+      } else {
+        moveFeature(featureId, targetStatus);
+      }
+    } else if (draggedFeature.skipTests) {
+      // skipTests feature being moved between in_progress and verified
+      if (targetStatus === "verified" && draggedFeature.status === "in_progress") {
+        // Manual verify via drag
+        moveFeature(featureId, "verified");
+        toast.success("Feature verified", {
+          description: `Marked as verified: ${draggedFeature.description.slice(0, 50)}${draggedFeature.description.length > 50 ? "..." : ""}`,
+        });
+      } else if (targetStatus === "in_progress" && draggedFeature.status === "verified") {
+        // Move back to in_progress
+        updateFeature(featureId, { status: "in_progress", startedAt: new Date().toISOString() });
+        toast.info("Feature moved back", {
+          description: `Moved back to In Progress: ${draggedFeature.description.slice(0, 50)}${draggedFeature.description.length > 50 ? "..." : ""}`,
+        });
+      } else if (targetStatus === "backlog") {
+        // Allow moving skipTests cards back to backlog
+        moveFeature(featureId, "backlog");
+        toast.info("Feature moved to backlog", {
+          description: `Moved to Backlog: ${draggedFeature.description.slice(0, 50)}${draggedFeature.description.length > 50 ? "..." : ""}`,
+        });
+      }
     }
   };
 
@@ -1132,6 +1168,25 @@ export function BoardView() {
                   Add Step
                 </Button>
               </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="edit-skip-tests"
+                  checked={editingFeature.skipTests ?? false}
+                  onCheckedChange={(checked) =>
+                    setEditingFeature({ ...editingFeature, skipTests: checked === true })
+                  }
+                  data-testid="edit-skip-tests-checkbox"
+                />
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="edit-skip-tests" className="text-sm cursor-pointer">
+                    Skip automated testing
+                  </Label>
+                  <FlaskConical className="w-3.5 h-3.5 text-muted-foreground" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                When enabled, this feature will require manual verification instead of automated TDD.
+              </p>
             </div>
           )}
           <DialogFooter>

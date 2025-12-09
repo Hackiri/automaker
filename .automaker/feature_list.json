@@ -13,7 +13,7 @@
     "description": "I need to add the ability on the Kanban cards to enable or disable if it's going to do the whole test driven development approach. Sometimes the task is so easy I don't need it to write tests for, but... And if it is a task that did not have a test, a user should manually be able to click a verified button when it's in the in progress column and the agent is done. I'll have to manually verify it.  So this might change the logic a little bit to allow dragging of cards when they aren't tested automatically from the in progress column back to verified and from verified back to in progress. But keep the existing functionality if it is a test automated card and prevent the dragging.",
     "steps": [],
     "status": "in_progress",
-    "startedAt": "2025-12-09T13:30:17.323Z"
+    "startedAt": "2025-12-09T13:35:12.427Z"
   },
   {
     "id": "feature-1765287091626-ceoj6xld8",

@@ -600,6 +600,10 @@ export async function setupMockProjectWithFeatures(
       };
 
       localStorage.setItem("automaker-storage", JSON.stringify(mockState));
+
+      // Also store features in a global variable that the mock electron API can use
+      // This is needed because the board-view loads features from the file system
+      (window as any).__mockFeatures = mockFeatures;
     },
     options
   );
@@ -1344,4 +1348,305 @@ export async function waitForProjectAnalysisComplete(
   }).catch(() => {
     // It may never have been visible, that's ok
   });
+}
+
+/**
+ * Get the delete confirmation dialog
+ */
+export async function getDeleteConfirmationDialog(page: Page): Promise<Locator> {
+  return page.locator('[data-testid="delete-confirmation-dialog"]');
+}
+
+/**
+ * Check if the delete confirmation dialog is visible
+ */
+export async function isDeleteConfirmationDialogVisible(page: Page): Promise<boolean> {
+  const dialog = page.locator('[data-testid="delete-confirmation-dialog"]');
+  return await dialog.isVisible().catch(() => false);
+}
+
+/**
+ * Wait for the delete confirmation dialog to appear
+ */
+export async function waitForDeleteConfirmationDialog(
+  page: Page,
+  options?: { timeout?: number }
+): Promise<Locator> {
+  return await waitForElement(page, "delete-confirmation-dialog", options);
+}
+
+/**
+ * Wait for the delete confirmation dialog to be hidden
+ */
+export async function waitForDeleteConfirmationDialogHidden(
+  page: Page,
+  options?: { timeout?: number }
+): Promise<void> {
+  await waitForElementHidden(page, "delete-confirmation-dialog", options);
+}
+
+/**
+ * Click the confirm delete button in the delete confirmation dialog
+ */
+export async function clickConfirmDeleteButton(page: Page): Promise<void> {
+  await clickElement(page, "confirm-delete-button");
+}
+
+/**
+ * Click the cancel delete button in the delete confirmation dialog
+ */
+export async function clickCancelDeleteButton(page: Page): Promise<void> {
+  await clickElement(page, "cancel-delete-button");
+}
+
+/**
+ * Click the delete button for a backlog feature card
+ */
+export async function clickDeleteFeatureButton(
+  page: Page,
+  featureId: string
+): Promise<void> {
+  const button = page.locator(`[data-testid="delete-feature-${featureId}"]`);
+  await button.click();
+}
+
+/**
+ * Check if the delete button is visible for a backlog feature
+ */
+export async function isDeleteFeatureButtonVisible(
+  page: Page,
+  featureId: string
+): Promise<boolean> {
+  const button = page.locator(`[data-testid="delete-feature-${featureId}"]`);
+  return await button.isVisible().catch(() => false);
+}
+
+/**
+ * Check if the edit feature dialog is visible
+ */
+export async function isEditFeatureDialogVisible(page: Page): Promise<boolean> {
+  const dialog = page.locator('[data-testid="edit-feature-dialog"]');
+  return await dialog.isVisible().catch(() => false);
+}
+
+/**
+ * Wait for the edit feature dialog to be visible
+ */
+export async function waitForEditFeatureDialog(
+  page: Page,
+  options?: { timeout?: number }
+): Promise<Locator> {
+  return await waitForElement(page, "edit-feature-dialog", options);
+}
+
+/**
+ * Get the edit feature description input/textarea element
+ */
+export async function getEditFeatureDescriptionInput(page: Page): Promise<Locator> {
+  return page.locator('[data-testid="edit-feature-description"]');
+}
+
+/**
+ * Check if the edit feature description field is a textarea
+ */
+export async function isEditFeatureDescriptionTextarea(page: Page): Promise<boolean> {
+  const element = page.locator('[data-testid="edit-feature-description"]');
+  const tagName = await element.evaluate((el) => el.tagName.toLowerCase());
+  return tagName === "textarea";
+}
+
+/**
+ * Open the edit dialog for a specific feature
+ */
+export async function openEditFeatureDialog(
+  page: Page,
+  featureId: string
+): Promise<void> {
+  await clickElement(page, `edit-feature-${featureId}`);
+  await waitForEditFeatureDialog(page);
+}
+
+/**
+ * Fill the edit feature description field
+ */
+export async function fillEditFeatureDescription(
+  page: Page,
+  value: string
+): Promise<void> {
+  const input = await getEditFeatureDescriptionInput(page);
+  await input.fill(value);
+}
+
+/**
+ * Click the confirm edit feature button
+ */
+export async function confirmEditFeature(page: Page): Promise<void> {
+  await clickElement(page, "confirm-edit-feature");
+}
+
+/**
+ * Get the skip tests checkbox element in the add feature dialog
+ */
+export async function getSkipTestsCheckbox(page: Page): Promise<Locator> {
+  return page.locator('[data-testid="skip-tests-checkbox"]');
+}
+
+/**
+ * Toggle the skip tests checkbox in the add feature dialog
+ */
+export async function toggleSkipTestsCheckbox(page: Page): Promise<void> {
+  const checkbox = page.locator('[data-testid="skip-tests-checkbox"]');
+  await checkbox.click();
+}
+
+/**
+ * Check if the skip tests checkbox is checked in the add feature dialog
+ */
+export async function isSkipTestsChecked(page: Page): Promise<boolean> {
+  const checkbox = page.locator('[data-testid="skip-tests-checkbox"]');
+  const state = await checkbox.getAttribute("data-state");
+  return state === "checked";
+}
+
+/**
+ * Get the edit skip tests checkbox element in the edit feature dialog
+ */
+export async function getEditSkipTestsCheckbox(page: Page): Promise<Locator> {
+  return page.locator('[data-testid="edit-skip-tests-checkbox"]');
+}
+
+/**
+ * Toggle the skip tests checkbox in the edit feature dialog
+ */
+export async function toggleEditSkipTestsCheckbox(page: Page): Promise<void> {
+  const checkbox = page.locator('[data-testid="edit-skip-tests-checkbox"]');
+  await checkbox.click();
+}
+
+/**
+ * Check if the skip tests checkbox is checked in the edit feature dialog
+ */
+export async function isEditSkipTestsChecked(page: Page): Promise<boolean> {
+  const checkbox = page.locator('[data-testid="edit-skip-tests-checkbox"]');
+  const state = await checkbox.getAttribute("data-state");
+  return state === "checked";
+}
+
+/**
+ * Check if the skip tests badge is visible on a kanban card
+ */
+export async function isSkipTestsBadgeVisible(
+  page: Page,
+  featureId: string
+): Promise<boolean> {
+  const badge = page.locator(`[data-testid="skip-tests-badge-${featureId}"]`);
+  return await badge.isVisible().catch(() => false);
+}
+
+/**
+ * Get the skip tests badge element for a kanban card
+ */
+export async function getSkipTestsBadge(
+  page: Page,
+  featureId: string
+): Promise<Locator> {
+  return page.locator(`[data-testid="skip-tests-badge-${featureId}"]`);
+}
+
+/**
+ * Click the manual verify button for a skipTests feature
+ */
+export async function clickManualVerify(
+  page: Page,
+  featureId: string
+): Promise<void> {
+  const button = page.locator(`[data-testid="manual-verify-${featureId}"]`);
+  await button.click();
+}
+
+/**
+ * Check if the manual verify button is visible for a feature
+ */
+export async function isManualVerifyButtonVisible(
+  page: Page,
+  featureId: string
+): Promise<boolean> {
+  const button = page.locator(`[data-testid="manual-verify-${featureId}"]`);
+  return await button.isVisible().catch(() => false);
+}
+
+/**
+ * Click the move back button for a verified skipTests feature
+ */
+export async function clickMoveBack(
+  page: Page,
+  featureId: string
+): Promise<void> {
+  const button = page.locator(`[data-testid="move-back-${featureId}"]`);
+  await button.click();
+}
+
+/**
+ * Check if the move back button is visible for a feature
+ */
+export async function isMoveBackButtonVisible(
+  page: Page,
+  featureId: string
+): Promise<boolean> {
+  const button = page.locator(`[data-testid="move-back-${featureId}"]`);
+  return await button.isVisible().catch(() => false);
+}
+
+/**
+ * Set up a mock project with features that have skipTests enabled
+ */
+export async function setupMockProjectWithSkipTestsFeatures(
+  page: Page,
+  options?: {
+    maxConcurrency?: number;
+    runningTasks?: string[];
+    features?: Array<{
+      id: string;
+      category: string;
+      description: string;
+      status: "backlog" | "in_progress" | "verified";
+      steps?: string[];
+      startedAt?: string;
+      skipTests?: boolean;
+    }>;
+  }
+): Promise<void> {
+  await page.addInitScript(
+    (opts: typeof options) => {
+      const mockProject = {
+        id: "test-project-1",
+        name: "Test Project",
+        path: "/mock/test-project",
+        lastOpened: new Date().toISOString(),
+      };
+
+      const mockFeatures = opts?.features || [];
+
+      const mockState = {
+        state: {
+          projects: [mockProject],
+          currentProject: mockProject,
+          theme: "dark",
+          sidebarOpen: true,
+          apiKeys: { anthropic: "", google: "" },
+          chatSessions: [],
+          chatHistoryOpen: false,
+          maxConcurrency: opts?.maxConcurrency ?? 3,
+          isAutoModeRunning: false,
+          runningAutoTasks: opts?.runningTasks ?? [],
+          autoModeActivityLog: [],
+          features: mockFeatures,
+        },
+        version: 0,
+      };
+
+      localStorage.setItem("automaker-storage", JSON.stringify(mockState));
+    },
+    options
+  );
 }
