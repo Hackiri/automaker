@@ -94,10 +94,21 @@
     "category": "Kanban",
     "description": "reduce width of in progress to 1 column no masonry",
     "steps": [],
-    "status": "waiting_approval",
+    "status": "verified",
     "startedAt": "2025-12-10T00:10:23.784Z",
     "imagePaths": [],
     "skipTests": true,
     "summary": "Reduced In Progress column width from double-width (37rem) to single column (w-72). Removed masonry 2-column layout. Modified: kanban-column.tsx (removed isDoubleWidth prop, simplified styling), board-view.tsx (removed isDoubleWidth prop from KanbanColumn). All columns now have uniform width with simple vertical card stacking."
+  },
+  {
+    "id": "feature-1765325900384-l6zprl3bx",
+    "category": "Core",
+    "description": "pressing p again should toggle on and off the select project dropdown",
+    "steps": [],
+    "status": "waiting_approval",
+    "startedAt": "2025-12-10T00:27:04.198Z",
+    "imagePaths": [],
+    "skipTests": true,
+    "summary": "Fixed P key toggle for project dropdown. The issue was that use-keyboard-shortcuts.ts disables ALL shortcuts when dropdown is open (isInputFocused check). Added P key handler to the existing useEffect in sidebar.tsx that handles keyboard events when dropdown is open. Modified: sidebar.tsx lines 192-196."
   }
 ]

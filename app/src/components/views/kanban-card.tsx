@@ -194,7 +194,7 @@ export function KanbanCard({
         "cursor-grab active:cursor-grabbing transition-all backdrop-blur-sm border-border relative",
         isDragging && "opacity-50 scale-105 shadow-lg",
         isCurrentAutoTask &&
-          "border-purple-500 border-2 shadow-purple-500/50 shadow-lg animate-pulse"
+          "border-running-indicator border-2 shadow-running-indicator/50 shadow-lg animate-pulse"
       )}
       data-testid={`kanban-card-${feature.id}`}
       {...attributes}
@@ -225,15 +225,15 @@ export function KanbanCard({
       )}
       <CardHeader className="p-3 pb-2">
         {isCurrentAutoTask && (
-          <div className="absolute top-2 right-2 flex items-center gap-2 bg-purple-500/20 border border-purple-500 rounded px-2 py-0.5">
-            <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
-            <span className="text-xs text-purple-400 font-medium">
+          <div className="absolute top-2 right-2 flex items-center gap-2 bg-running-indicator/20 border border-running-indicator rounded px-2 py-0.5">
+            <Loader2 className="w-4 h-4 text-running-indicator animate-spin" />
+            <span className="text-xs text-running-indicator font-medium">
               Running...
             </span>
             {feature.startedAt && (
               <CountUpTimer
                 startedAt={feature.startedAt}
-                className="text-purple-400"
+                className="text-running-indicator"
               />
             )}
           </div>
@@ -491,7 +491,7 @@ export function KanbanCard({
                 <Button
                   variant="default"
                   size="sm"
-                  className="flex-1 h-7 text-xs bg-purple-600 hover:bg-purple-700"
+                  className="flex-1 h-7 text-xs bg-action-view hover:bg-action-view-hover"
                   onClick={(e) => {
                     e.stopPropagation();
                     onViewOutput();
@@ -526,7 +526,7 @@ export function KanbanCard({
                 <Button
                   variant="default"
                   size="sm"
-                  className="flex-1 h-7 text-xs bg-green-600 hover:bg-green-700"
+                  className="flex-1 h-7 text-xs bg-action-verify hover:bg-action-verify-hover"
                   onClick={(e) => {
                     e.stopPropagation();
                     onManualVerify();
@@ -540,7 +540,7 @@ export function KanbanCard({
                 <Button
                   variant="default"
                   size="sm"
-                  className="flex-1 h-7 text-xs bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 h-7 text-xs bg-action-verify hover:bg-action-verify-hover"
                   onClick={(e) => {
                     e.stopPropagation();
                     onResume();
@@ -554,7 +554,7 @@ export function KanbanCard({
                 <Button
                   variant="default"
                   size="sm"
-                  className="flex-1 h-7 text-xs bg-green-600 hover:bg-green-700"
+                  className="flex-1 h-7 text-xs bg-action-verify hover:bg-action-verify-hover"
                   onClick={(e) => {
                     e.stopPropagation();
                     onVerify();
@@ -640,7 +640,7 @@ export function KanbanCard({
                 <Button
                   variant="default"
                   size="sm"
-                  className="flex-1 h-7 text-xs bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 h-7 text-xs bg-action-followup hover:bg-action-followup-hover"
                   onClick={(e) => {
                     e.stopPropagation();
                     onFollowUp();
@@ -656,7 +656,7 @@ export function KanbanCard({
                 <Button
                   variant="default"
                   size="sm"
-                  className="flex-1 h-7 text-xs bg-green-600 hover:bg-green-700"
+                  className="flex-1 h-7 text-xs bg-action-commit hover:bg-action-commit-hover"
                   onClick={(e) => {
                     e.stopPropagation();
                     onCommit();

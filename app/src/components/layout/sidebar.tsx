@@ -178,7 +178,7 @@ export function Sidebar() {
     [projects, setCurrentProject]
   );
 
-  // Handle number key presses when project picker is open
+  // Handle keyboard events when project picker is open
   useEffect(() => {
     if (!isProjectPickerOpen) return;
 
@@ -188,6 +188,10 @@ export function Sidebar() {
         event.preventDefault();
         selectProjectByNumber(num);
       } else if (event.key === "Escape") {
+        setIsProjectPickerOpen(false);
+      } else if (event.key.toLowerCase() === "p") {
+        // Toggle off when P is pressed while dropdown is open
+        event.preventDefault();
         setIsProjectPickerOpen(false);
       }
     };
@@ -218,8 +222,8 @@ export function Sidebar() {
     if (projects.length > 0) {
       shortcuts.push({
         key: ACTION_SHORTCUTS.projectPicker,
-        action: () => setIsProjectPickerOpen(true),
-        description: "Open project picker",
+        action: () => setIsProjectPickerOpen((prev) => !prev),
+        description: "Toggle project picker",
       });
     }
 
