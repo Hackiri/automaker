@@ -742,12 +742,15 @@ export function Sidebar() {
         {/* Logo */}
         <div
           className={cn(
-            "h-20 pt-8 flex items-center justify-between border-b border-sidebar-border shrink-0 titlebar-drag-region",
-            sidebarOpen ? "px-3 lg:px-6" : "px-3"
+            "h-20 border-b border-sidebar-border shrink-0 titlebar-drag-region",
+            sidebarOpen ? "pt-8 px-3 lg:px-6 flex items-center justify-between" : "pt-2 pb-2 px-3 flex flex-col items-center justify-center gap-2"
           )}
         >
           <div
-            className="flex items-center titlebar-no-drag cursor-pointer"
+            className={cn(
+              "flex items-center titlebar-no-drag cursor-pointer",
+              !sidebarOpen && "flex-col gap-1"
+            )}
             onClick={() => setCurrentView("welcome")}
             data-testid="logo-button"
           >
