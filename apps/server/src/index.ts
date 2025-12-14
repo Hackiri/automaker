@@ -322,25 +322,57 @@ terminalWss.on(
   }
 );
 
-// Start server
-server.listen(PORT, () => {
-  const terminalStatus = isTerminalEnabled()
-    ? isTerminalPasswordRequired()
-      ? "enabled (password protected)"
-      : "enabled"
-    : "disabled";
-  console.log(`
+// Start server with error handling for port conflicts
+const startServer = (port: number) => {
+  server.listen(port, () => {
+    const terminalStatus = isTerminalEnabled()
+      ? isTerminalPasswordRequired()
+        ? "enabled (password protected)"
+        : "enabled"
+      : "disabled";
+    const portStr = port.toString().padEnd(4);
+    console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║           Automaker Backend Server                    ║
 ╠═══════════════════════════════════════════════════════╣
-║  HTTP API:    http://localhost:${PORT}                  ║
-║  WebSocket:   ws://localhost:${PORT}/api/events         ║
-║  Terminal:    ws://localhost:${PORT}/api/terminal/ws    ║
-║  Health:      http://localhost:${PORT}/api/health       ║
+║  HTTP API:    http://localhost:${portStr}                 ║
+║  WebSocket:   ws://localhost:${portStr}/api/events        ║
+║  Terminal:    ws://localhost:${portStr}/api/terminal/ws   ║
+║  Health:      http://localhost:${portStr}/api/health      ║
 ║  Terminal:    ${terminalStatus.padEnd(37)}║
 ╚═══════════════════════════════════════════════════════╝
 `);
-});
+  });
+
+  server.on("error", (error: NodeJS.ErrnoException) => {
+    if (error.code === "EADDRINUSE") {
+      console.error(`
+╔═══════════════════════════════════════════════════════╗
+║  ❌ ERROR: Port ${port} is already in use              ║
+╠═══════════════════════════════════════════════════════╣
+║  Another process is using this port.                  ║
+║                                                       ║
+║  To fix this, try one of:                             ║
+║                                                       ║
+║  1. Kill the process using the port:                  ║
+║     lsof -ti:${port} | xargs kill -9                   ║
+║                                                       ║
+║  2. Use a different port:                             ║
+║     PORT=${port + 1} npm run dev:server                ║
+║                                                       ║
+║  3. Use the init.sh script which handles this:        ║
+║     ./init.sh                                         ║
+╚═══════════════════════════════════════════════════════╝
+`);
+      process.exit(1);
+    } else {
+      console.error("[Server] Error starting server:", error);
+      process.exit(1);
+    }
+  });
+};
+
+startServer(PORT);
 
 // Graceful shutdown
 process.on("SIGTERM", () => {
