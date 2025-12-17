@@ -233,7 +233,8 @@ export interface AutoModeAPI {
   ) => Promise<{ success: boolean; passes?: boolean; error?: string }>;
   resumeFeature: (
     projectPath: string,
-    featureId: string
+    featureId: string,
+    useWorktrees?: boolean
   ) => Promise<{ success: boolean; passes?: boolean; error?: string }>;
   contextExists: (
     projectPath: string,
@@ -1464,7 +1465,7 @@ function createMockAutoModeAPI(): AutoModeAPI {
       return { success: true, passes: true };
     },
 
-    resumeFeature: async (projectPath: string, featureId: string) => {
+    resumeFeature: async (projectPath: string, featureId: string, useWorktrees?: boolean) => {
       if (mockRunningFeatures.has(featureId)) {
         return {
           success: false,

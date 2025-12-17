@@ -31,8 +31,9 @@ export function createRunFeatureHandler(autoModeService: AutoModeService) {
 
       // Start execution in background
       // If worktreePath is provided, use it directly; otherwise let the service decide
+      // Default to false - worktrees should only be used when explicitly enabled
       autoModeService
-        .executeFeature(projectPath, featureId, useWorktrees ?? true, false, worktreePath)
+        .executeFeature(projectPath, featureId, useWorktrees ?? false, false, worktreePath)
         .catch((error) => {
           logger.error(`[AutoMode] Feature ${featureId} error:`, error);
         });

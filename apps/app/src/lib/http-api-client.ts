@@ -536,8 +536,8 @@ export class HttpApiClient implements ElectronAPI {
       }),
     verifyFeature: (projectPath: string, featureId: string) =>
       this.post("/api/auto-mode/verify-feature", { projectPath, featureId }),
-    resumeFeature: (projectPath: string, featureId: string) =>
-      this.post("/api/auto-mode/resume-feature", { projectPath, featureId }),
+    resumeFeature: (projectPath: string, featureId: string, useWorktrees?: boolean) =>
+      this.post("/api/auto-mode/resume-feature", { projectPath, featureId, useWorktrees }),
     contextExists: (projectPath: string, featureId: string) =>
       this.post("/api/auto-mode/context-exists", { projectPath, featureId }),
     analyzeProject: (projectPath: string) =>

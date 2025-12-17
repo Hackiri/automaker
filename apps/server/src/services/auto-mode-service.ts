@@ -193,7 +193,7 @@ export class AutoModeService {
   async executeFeature(
     projectPath: string,
     featureId: string,
-    useWorktrees = true,
+    useWorktrees = false,
     isAutoMode = false,
     providedWorktreePath?: string
   ): Promise<void> {
@@ -352,7 +352,7 @@ export class AutoModeService {
   async resumeFeature(
     projectPath: string,
     featureId: string,
-    useWorktrees = true
+    useWorktrees = false
   ): Promise<void> {
     // Check if context exists in .automaker directory
     const featureDir = getFeatureDir(projectPath, featureId);

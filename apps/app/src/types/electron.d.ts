@@ -359,7 +359,8 @@ export interface AutoModeAPI {
 
   resumeFeature: (
     projectPath: string,
-    featureId: string
+    featureId: string,
+    useWorktrees?: boolean
   ) => Promise<{
     success: boolean;
     passes?: boolean;

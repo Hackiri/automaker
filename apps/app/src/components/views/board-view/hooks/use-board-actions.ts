@@ -342,7 +342,8 @@ export function useBoardActions({
 
         const result = await api.autoMode.resumeFeature(
           currentProject.path,
-          feature.id
+          feature.id,
+          useWorktrees
         );
 
         if (result.success) {
@@ -356,7 +357,7 @@ export function useBoardActions({
         await loadFeatures();
       }
     },
-    [currentProject, loadFeatures]
+    [currentProject, loadFeatures, useWorktrees]
   );
 
   const handleManualVerify = useCallback(
