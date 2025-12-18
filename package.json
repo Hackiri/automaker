@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "postinstall": "node -e \"const fs=require('fs');if(process.platform==='darwin'){['darwin-arm64','darwin-x64'].forEach(a=>{const p='node_modules/node-pty/prebuilds/'+a+'/spawn-helper';if(fs.existsSync(p))fs.chmodSync(p,0o755)})}\"",
-    "dev": "./init.sh",
+    "dev": "node init.mjs",
     "dev:web": "npm run dev:web --workspace=apps/app",
     "dev:electron": "npm run dev:electron --workspace=apps/app",
     "dev:electron:debug": "npm run dev:electron:debug --workspace=apps/app",
@@ -32,6 +32,7 @@
     "lint:lockfile": "! grep -q 'git+ssh://' package-lock.json || (echo 'Error: package-lock.json contains git+ssh:// URLs. Run: git config --global url.\"https://github.com/\".insteadOf \"git@github.com:\"' && exit 1)"
   },
   "dependencies": {
-    "cross-spawn": "^7.0.6"
+    "cross-spawn": "^7.0.6",
+    "tree-kill": "^1.2.2"
   }
 }
