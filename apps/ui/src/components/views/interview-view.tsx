@@ -465,7 +465,7 @@ export function InterviewView() {
                 "max-w-[80%]",
                 message.role === "user"
                   ? "bg-transparent border border-primary text-foreground"
-                  : "border-l-4 border-primary bg-card"
+                  : "border border-primary/30 bg-card"
               )}
             >
               <CardContent className="px-3 py-2">
@@ -498,7 +498,7 @@ export function InterviewView() {
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
               <Bot className="w-4 h-4 text-primary" />
             </div>
-            <Card className="border-l-4 border-primary bg-card">
+            <Card className="border border-primary/30 bg-card">
               <CardContent className="p-3">
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin text-primary" />

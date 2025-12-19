@@ -208,18 +208,25 @@ ${getStructuredSpecPromptInstruction()}`;
       throw new Error("No response text and no structured output - cannot generate spec");
     }
 
-    xmlContent = responseText;
     const xmlStart = responseText.indexOf("<project_specification>");
     const xmlEnd = responseText.lastIndexOf("</project_specification>");
 
     if (xmlStart !== -1 && xmlEnd !== -1) {
-      // Extract just the XML content
+      // Extract just the XML content, discarding any conversational text before/after
       xmlContent = responseText.substring(xmlStart, xmlEnd + "</project_specification>".length);
       logger.info(`Extracted XML content: ${xmlContent.length} chars (from position ${xmlStart})`);
-    } else if (xmlStart === -1) {
-      logger.warn("⚠️ Response does not contain <project_specification> tag - saving raw response");
     } else {
-      logger.warn("⚠️ Response has incomplete XML (missing closing tag) - saving raw response");
+      // No valid XML structure found in the response text
+      // This happens when structured output was expected but not received, and the agent
+      // output conversational text instead of XML (e.g., "The project directory appears to be empty...")
+      // We should NOT save this conversational text as it's not a valid spec
+      logger.error("❌ Response does not contain valid <project_specification> XML structure");
+      logger.error("This typically happens when structured output failed and the agent produced conversational text instead of XML");
+      throw new Error(
+        "Failed to generate spec: No valid XML structure found in response. " +
+        "The response contained conversational text but no <project_specification> tags. " +
+        "Please try again."
+      );
     }
   }
 

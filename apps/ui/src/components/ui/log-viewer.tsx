@@ -325,7 +325,7 @@ function LogEntryItem({ entry, isExpanded, onToggle }: LogEntryItemProps) {
   return (
     <div
       className={cn(
-        "rounded-lg border-l-4 transition-all duration-200",
+        "rounded-lg border transition-all duration-200",
         bgColor,
         borderColor,
         "hover:brightness-110"

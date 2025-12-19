@@ -662,7 +662,7 @@ export function getLogTypeColors(type: LogEntryType): {
     case "prompt":
       return {
         bg: "bg-blue-500/10",
-        border: "border-l-blue-500",
+        border: "border-blue-500/30",
         text: "text-blue-300",
         icon: "text-blue-400",
         badge: "bg-blue-500/20 text-blue-300",
@@ -670,7 +670,7 @@ export function getLogTypeColors(type: LogEntryType): {
     case "tool_call":
       return {
         bg: "bg-amber-500/10",
-        border: "border-l-amber-500",
+        border: "border-amber-500/30",
         text: "text-amber-300",
         icon: "text-amber-400",
         badge: "bg-amber-500/20 text-amber-300",
@@ -678,7 +678,7 @@ export function getLogTypeColors(type: LogEntryType): {
     case "tool_result":
       return {
         bg: "bg-slate-500/10",
-        border: "border-l-slate-400",
+        border: "border-slate-400/30",
         text: "text-slate-300",
         icon: "text-slate-400",
         badge: "bg-slate-500/20 text-slate-300",
@@ -686,7 +686,7 @@ export function getLogTypeColors(type: LogEntryType): {
     case "phase":
       return {
         bg: "bg-cyan-500/10",
-        border: "border-l-cyan-500",
+        border: "border-cyan-500/30",
         text: "text-cyan-300",
         icon: "text-cyan-400",
         badge: "bg-cyan-500/20 text-cyan-300",
@@ -694,7 +694,7 @@ export function getLogTypeColors(type: LogEntryType): {
     case "error":
       return {
         bg: "bg-red-500/10",
-        border: "border-l-red-500",
+        border: "border-red-500/30",
         text: "text-red-300",
         icon: "text-red-400",
         badge: "bg-red-500/20 text-red-300",
@@ -702,7 +702,7 @@ export function getLogTypeColors(type: LogEntryType): {
     case "success":
       return {
         bg: "bg-emerald-500/10",
-        border: "border-l-emerald-500",
+        border: "border-emerald-500/30",
         text: "text-emerald-300",
         icon: "text-emerald-400",
         badge: "bg-emerald-500/20 text-emerald-300",
@@ -710,7 +710,7 @@ export function getLogTypeColors(type: LogEntryType): {
     case "warning":
       return {
         bg: "bg-orange-500/10",
-        border: "border-l-orange-500",
+        border: "border-orange-500/30",
         text: "text-orange-300",
         icon: "text-orange-400",
         badge: "bg-orange-500/20 text-orange-300",
@@ -718,7 +718,7 @@ export function getLogTypeColors(type: LogEntryType): {
     case "thinking":
       return {
         bg: "bg-indigo-500/10",
-        border: "border-l-indigo-500",
+        border: "border-indigo-500/30",
         text: "text-indigo-300",
         icon: "text-indigo-400",
         badge: "bg-indigo-500/20 text-indigo-300",
@@ -726,7 +726,7 @@ export function getLogTypeColors(type: LogEntryType): {
     case "debug":
       return {
         bg: "bg-primary/10",
-        border: "border-l-primary",
+        border: "border-primary/30",
         text: "text-primary",
         icon: "text-primary",
         badge: "bg-primary/20 text-primary",
@@ -734,7 +734,7 @@ export function getLogTypeColors(type: LogEntryType): {
     default:
       return {
         bg: "bg-zinc-500/10",
-        border: "border-l-zinc-500",
+        border: "border-zinc-500/30",
         text: "text-zinc-300",
         icon: "text-zinc-400",
         badge: "bg-zinc-500/20 text-zinc-300",

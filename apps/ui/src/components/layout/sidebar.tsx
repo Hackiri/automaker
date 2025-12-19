@@ -1872,9 +1872,6 @@ export function Sidebar() {
                         title={!sidebarOpen ? item.label : undefined}
                         data-testid={`nav-${item.id}`}
                       >
-                        {isActive && (
-                          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand-400 via-brand-500 to-brand-600 rounded-r-full shadow-sm shadow-brand-500/50"></div>
-                        )}
                         <Icon
                           className={cn(
                             "w-[18px] h-[18px] shrink-0 transition-all duration-200",
@@ -1974,9 +1971,6 @@ export function Sidebar() {
               title={!sidebarOpen ? "Wiki" : undefined}
               data-testid="wiki-link"
             >
-              {isActiveRoute("wiki") && (
-                <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand-400 via-brand-500 to-brand-600 rounded-r-full shadow-sm shadow-brand-500/50"></div>
-              )}
               <BookOpen
                 className={cn(
                   "w-[18px] h-[18px] shrink-0 transition-all duration-200",
@@ -2037,9 +2031,6 @@ export function Sidebar() {
               title={!sidebarOpen ? "Running Agents" : undefined}
               data-testid="running-agents-link"
             >
-              {isActiveRoute("running-agents") && (
-                <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand-400 via-brand-500 to-brand-600 rounded-r-full shadow-sm shadow-brand-500/50"></div>
-              )}
               <div className="relative">
                 <Activity
                   className={cn(
@@ -2135,9 +2126,6 @@ export function Sidebar() {
             title={!sidebarOpen ? "Settings" : undefined}
             data-testid="settings-button"
           >
-            {isActiveRoute("settings") && (
-              <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand-400 via-brand-500 to-brand-600 rounded-r-full shadow-sm shadow-brand-500/50"></div>
-            )}
             <Settings
               className={cn(
                 "w-[18px] h-[18px] shrink-0 transition-all duration-200",
