@@ -16,6 +16,7 @@ import type {
   ProviderMessage,
   InstallationStatus,
   ModelDefinition,
+  ContentBlock,
 } from './types.js';
 import {
   type CursorStreamEvent,
@@ -452,6 +453,64 @@ export class CursorProvider extends BaseProvider {
   }
 
   /**
+   * Deduplicate text blocks in Cursor assistant messages
+   *
+   * Cursor often sends:
+   * 1. Duplicate consecutive text blocks (same text twice in a row)
+   * 2. A final accumulated block containing ALL previous text
+   *
+   * This method filters out these duplicates to prevent UI stuttering.
+   */
+  private deduplicateTextBlocks(
+    content: ContentBlock[],
+    lastTextBlock: string,
+    accumulatedText: string
+  ): { content: ContentBlock[]; lastBlock: string; accumulated: string } {
+    const filtered: ContentBlock[] = [];
+    let newLastBlock = lastTextBlock;
+    let newAccumulated = accumulatedText;
+
+    for (const block of content) {
+      if (block.type !== 'text' || !block.text) {
+        filtered.push(block);
+        continue;
+      }
+
+      const text = block.text;
+
+      // Skip empty text
+      if (!text.trim()) continue;
+
+      // Skip duplicate consecutive text blocks
+      if (text === newLastBlock) {
+        continue;
+      }
+
+      // Skip final accumulated text block
+      // Cursor sends one large block containing ALL previous text at the end
+      if (newAccumulated.length > 100 && text.length > newAccumulated.length * 0.8) {
+        const normalizedAccum = newAccumulated.replace(/\s+/g, ' ').trim();
+        const normalizedNew = text.replace(/\s+/g, ' ').trim();
+        if (normalizedNew.includes(normalizedAccum.slice(0, 100))) {
+          // This is the final accumulated block, skip it
+          continue;
+        }
+      }
+
+      // This is a valid new text block
+      newLastBlock = text;
+      newAccumulated += text;
+      filtered.push(block);
+    }
+
+    return {
+      content: filtered,
+      lastBlock: newLastBlock,
+      accumulated: newAccumulated,
+    };
+  }
+
+  /**
    * Convert Cursor event to AutoMaker ProviderMessage format
    */
   private normalizeEvent(event: CursorStreamEvent): ProviderMessage | null {
@@ -706,6 +765,10 @@ export class CursorProvider extends BaseProvider {
 
     let sessionId: string | undefined;
 
+    // Dedup state for Cursor-specific text block handling
+    let lastTextBlock = '';
+    let accumulatedText = '';
+
     try {
       // spawnJSONLProcess yields parsed JSON objects, handles errors
       for await (const rawEvent of spawnJSONLProcess(subprocessOptions)) {
@@ -724,6 +787,28 @@ export class CursorProvider extends BaseProvider {
           if (!normalized.session_id && sessionId) {
             normalized.session_id = sessionId;
           }
+
+          // Apply Cursor-specific dedup for assistant text messages
+          if (normalized.type === 'assistant' && normalized.message?.content) {
+            const dedupedContent = this.deduplicateTextBlocks(
+              normalized.message.content,
+              lastTextBlock,
+              accumulatedText
+            );
+
+            if (dedupedContent.content.length === 0) {
+              // All blocks were duplicates, skip this message
+              continue;
+            }
+
+            // Update state
+            lastTextBlock = dedupedContent.lastBlock;
+            accumulatedText = dedupedContent.accumulated;
+
+            // Update the message with deduped content
+            normalized.message.content = dedupedContent.content;
+          }
+
           yield normalized;
         }
       }

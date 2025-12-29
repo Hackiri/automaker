@@ -1981,9 +1981,6 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
       }, WRITE_DEBOUNCE_MS);
     };
 
-    // Track last text block for deduplication (Cursor sends duplicates)
-    let lastTextBlock = '';
-
     streamLoop: for await (const msg of stream) {
       // Log raw stream event for debugging
       appendRawEvent(msg);
@@ -1996,30 +1993,8 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
             // Skip empty text
             if (!newText) continue;
 
-            // Cursor-specific: Skip duplicate consecutive text blocks
-            // Cursor often sends the same text twice in a row
-            if (newText === lastTextBlock) {
-              continue;
-            }
-
-            // Cursor-specific: Skip final accumulated text block
-            // At the end, Cursor sends one large block containing ALL previous text
-            // Detect by checking if this block contains most of responseText
-            if (
-              responseText.length > 100 &&
-              newText.length > responseText.length * 0.8 &&
-              responseText.trim().length > 0
-            ) {
-              // Check if this looks like accumulated text (contains our existing content)
-              const normalizedResponse = responseText.replace(/\s+/g, ' ').trim();
-              const normalizedNew = newText.replace(/\s+/g, ' ').trim();
-              if (normalizedNew.includes(normalizedResponse.slice(0, 100))) {
-                // This is the final accumulated block, skip it
-                continue;
-              }
-            }
-
-            lastTextBlock = newText;
+            // Note: Cursor-specific dedup (duplicate blocks, accumulated text) is now
+            // handled in CursorProvider.deduplicateTextBlocks() for cleaner separation
 
             // Only add separator when we're at a natural paragraph break:
             // - Previous text ends with sentence terminator AND new text starts a new thought
