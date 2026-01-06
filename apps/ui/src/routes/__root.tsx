@@ -24,6 +24,7 @@ import { ThemeOption, themeOptions } from '@/config/theme-options';
 import { SandboxRiskDialog } from '@/components/dialogs/sandbox-risk-dialog';
 import { SandboxRejectionScreen } from '@/components/dialogs/sandbox-rejection-screen';
 import { LoadingState } from '@/components/ui/loading-state';
+import { useProjectSettingsLoader } from '@/hooks/use-project-settings-loader';
 
 const logger = createLogger('RootLayout');
 
@@ -46,6 +47,9 @@ function RootLayoutContent() {
   const authChecked = useAuthStore((s) => s.authChecked);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { openFileBrowser } = useFileBrowser();
+
+  // Load project settings when switching projects
+  useProjectSettingsLoader();
 
   const isSetupRoute = location.pathname === '/setup';
   const isLoginRoute = location.pathname === '/login';
