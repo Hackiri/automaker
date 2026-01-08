@@ -78,10 +78,12 @@ jobs:
           path: apps/ui/playwright-report/
           retention-days: 7
 
-      - name: Upload test results
+      - name: Upload test results (screenshots, traces, videos)
         uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
           name: test-results
-          path: apps/ui/test-results/
+          path: |
+            apps/ui/test-results/
           retention-days: 7
+          if-no-files-found: ignore
