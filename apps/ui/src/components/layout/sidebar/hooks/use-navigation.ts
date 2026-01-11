@@ -11,6 +11,7 @@ import {
   GitPullRequest,
   Zap,
   Lightbulb,
+  Brain,
 } from 'lucide-react';
 import type { NavSection, NavItem } from '../types';
 import type { KeyboardShortcut } from '@/hooks/use-keyboard-shortcuts';
@@ -26,6 +27,7 @@ interface UseNavigationProps {
     cycleNextProject: string;
     spec: string;
     context: string;
+    memory: string;
     profiles: string;
     board: string;
     agent: string;
@@ -113,6 +115,12 @@ export function useNavigation({
         label: 'Context',
         icon: BookOpen,
         shortcut: shortcuts.context,
+      },
+      {
+        id: 'memory',
+        label: 'Memory',
+        icon: Brain,
+        shortcut: shortcuts.memory,
       },
       {
         id: 'profiles',
