@@ -1438,6 +1438,16 @@ export class HttpApiClient implements ElectronAPI {
       features?: Feature[];
       error?: string;
     }>;
+    bulkDelete: (
+      projectPath: string,
+      featureIds: string[]
+    ) => Promise<{
+      success: boolean;
+      deletedCount?: number;
+      failedCount?: number;
+      results?: Array<{ featureId: string; success: boolean; error?: string }>;
+      error?: string;
+    }>;
   } = {
     getAll: (projectPath: string) => this.post('/api/features/list', { projectPath }),
     get: (projectPath: string, featureId: string) =>
@@ -1466,6 +1476,8 @@ export class HttpApiClient implements ElectronAPI {
       this.post('/api/features/generate-title', { description }),
     bulkUpdate: (projectPath: string, featureIds: string[], updates: Partial<Feature>) =>
       this.post('/api/features/bulk-update', { projectPath, featureIds, updates }),
+    bulkDelete: (projectPath: string, featureIds: string[]) =>
+      this.post('/api/features/bulk-delete', { projectPath, featureIds }),
   };
 
   // Auto Mode API

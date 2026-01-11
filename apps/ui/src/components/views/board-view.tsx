@@ -505,6 +505,34 @@ export function BoardView() {
     [currentProject, selectedFeatureIds, updateFeature, exitSelectionMode]
   );
 
+  // Handler for bulk deleting multiple features
+  const handleBulkDelete = useCallback(async () => {
+    if (!currentProject || selectedFeatureIds.size === 0) return;
+
+    try {
+      const api = getHttpApiClient();
+      const featureIds = Array.from(selectedFeatureIds);
+      const result = await api.features.bulkDelete(currentProject.path, featureIds);
+
+      if (result.success) {
+        // Delete from local state
+        featureIds.forEach((featureId) => {
+          persistFeatureDelete(featureId);
+        });
+        toast.success(`Deleted ${result.deletedCount} features`);
+        exitSelectionMode();
+        loadFeatures();
+      } else {
+        toast.error('Failed to delete some features', {
+          description: `${result.failedCount} features failed to delete`,
+        });
+      }
+    } catch (error) {
+      logger.error('Bulk delete failed:', error);
+      toast.error('Failed to delete features');
+    }
+  }, [currentProject, selectedFeatureIds, persistFeatureDelete, exitSelectionMode, loadFeatures]);
+
   // Get selected features for mass edit dialog
   const selectedFeatures = useMemo(() => {
     return hookFeatures.filter((f) => selectedFeatureIds.has(f.id));
@@ -1257,6 +1285,7 @@ export function BoardView() {
           selectedCount={selectedCount}
           totalCount={allSelectableFeatureIds.length}
           onEdit={() => setShowMassEditDialog(true)}
+          onDelete={handleBulkDelete}
           onClear={clearSelection}
           onSelectAll={() => selectAll(allSelectableFeatureIds)}
         />
