@@ -213,6 +213,7 @@ export interface KeyboardShortcuts {
   agent: string;
   spec: string;
   context: string;
+  memory: string;
   settings: string;
   terminal: string;
   ideation: string;
@@ -246,6 +247,7 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   agent: 'A',
   spec: 'D',
   context: 'C',
+  memory: 'Y',
   settings: 'S',
   terminal: 'T',
   ideation: 'I',
