@@ -401,6 +401,8 @@ export interface GlobalSettings {
   enabledOpencodeModels?: OpencodeModelId[];
   /** Default OpenCode model selection when switching to OpenCode CLI */
   opencodeDefaultModel?: OpencodeModelId;
+  /** Which dynamic OpenCode models are enabled (empty = all discovered) */
+  enabledDynamicModelIds?: string[];
 
   // Input Configuration
   /** User's keyboard shortcut bindings */
@@ -704,6 +706,7 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   cursorDefaultModel: 'auto',
   enabledOpencodeModels: getAllOpencodeModelIds(),
   opencodeDefaultModel: DEFAULT_OPENCODE_MODEL,
+  enabledDynamicModelIds: [],
   keyboardShortcuts: DEFAULT_KEYBOARD_SHORTCUTS,
   projects: [],
   trashedProjects: [],

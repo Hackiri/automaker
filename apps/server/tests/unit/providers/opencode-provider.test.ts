@@ -3,7 +3,7 @@ import {
   OpencodeProvider,
   resetToolUseIdCounter,
 } from '../../../src/providers/opencode-provider.js';
-import type { ProviderMessage } from '@automaker/types';
+import type { ProviderMessage, ModelDefinition } from '@automaker/types';
 import { collectAsyncGenerator } from '../../utils/helpers.js';
 import { spawnJSONLProcess, getOpenCodeAuthIndicators } from '@automaker/platform';
 
@@ -51,63 +51,38 @@ describe('opencode-provider.ts', () => {
   });
 
   describe('getAvailableModels', () => {
-    it('should return 10 models', () => {
+    it('should return 5 models', () => {
       const models = provider.getAvailableModels();
-      expect(models).toHaveLength(10);
+      expect(models).toHaveLength(5);
     });
 
-    it('should include Claude Sonnet 4.5 (Bedrock) as default', () => {
-      const models = provider.getAvailableModels();
-      const sonnet = models.find(
-        (m) => m.id === 'amazon-bedrock/anthropic.claude-sonnet-4-5-20250929-v1:0'
-      );
-
-      expect(sonnet).toBeDefined();
-      expect(sonnet?.name).toBe('Claude Sonnet 4.5 (Bedrock)');
-      expect(sonnet?.provider).toBe('opencode');
-      expect(sonnet?.default).toBe(true);
-      expect(sonnet?.modelString).toBe('amazon-bedrock/anthropic.claude-sonnet-4-5-20250929-v1:0');
-    });
-
-    it('should include Claude Opus 4.5 (Bedrock)', () => {
-      const models = provider.getAvailableModels();
-      const opus = models.find(
-        (m) => m.id === 'amazon-bedrock/anthropic.claude-opus-4-5-20251101-v1:0'
-      );
-
-      expect(opus).toBeDefined();
-      expect(opus?.name).toBe('Claude Opus 4.5 (Bedrock)');
-      expect(opus?.modelString).toBe('amazon-bedrock/anthropic.claude-opus-4-5-20251101-v1:0');
-    });
-
-    it('should include Claude Haiku 4.5 (Bedrock)', () => {
-      const models = provider.getAvailableModels();
-      const haiku = models.find(
-        (m) => m.id === 'amazon-bedrock/anthropic.claude-haiku-4-5-20251001-v1:0'
-      );
-
-      expect(haiku).toBeDefined();
-      expect(haiku?.name).toBe('Claude Haiku 4.5 (Bedrock)');
-      expect(haiku?.tier).toBe('standard');
-    });
-
-    it('should include free tier Big Pickle model', () => {
+    it('should include Big Pickle as default', () => {
       const models = provider.getAvailableModels();
       const bigPickle = models.find((m) => m.id === 'opencode/big-pickle');
 
       expect(bigPickle).toBeDefined();
       expect(bigPickle?.name).toBe('Big Pickle (Free)');
+      expect(bigPickle?.provider).toBe('opencode');
+      expect(bigPickle?.default).toBe(true);
       expect(bigPickle?.modelString).toBe('opencode/big-pickle');
-      expect(bigPickle?.tier).toBe('basic');
     });
 
-    it('should include DeepSeek R1 (Bedrock)', () => {
+    it('should include free tier GLM model', () => {
       const models = provider.getAvailableModels();
-      const deepseek = models.find((m) => m.id === 'amazon-bedrock/deepseek.r1-v1:0');
+      const glm = models.find((m) => m.id === 'opencode/glm-4.7-free');
 
-      expect(deepseek).toBeDefined();
-      expect(deepseek?.name).toBe('DeepSeek R1 (Bedrock)');
-      expect(deepseek?.tier).toBe('premium');
+      expect(glm).toBeDefined();
+      expect(glm?.name).toBe('GLM 4.7 Free');
+      expect(glm?.tier).toBe('basic');
+    });
+
+    it('should include free tier MiniMax model', () => {
+      const models = provider.getAvailableModels();
+      const minimax = models.find((m) => m.id === 'opencode/minimax-m2.1-free');
+
+      expect(minimax).toBeDefined();
+      expect(minimax?.name).toBe('MiniMax M2.1 Free');
+      expect(minimax?.tier).toBe('basic');
     });
 
     it('should have all models support tools', () => {
@@ -125,6 +100,24 @@ describe('opencode-provider.ts', () => {
         expect(model).toHaveProperty('modelString');
         expect(typeof model.modelString).toBe('string');
       }
+    });
+  });
+
+  describe('parseModelsOutput', () => {
+    it('should parse nested provider model IDs', () => {
+      const output = ['openrouter/anthropic/claude-3.5-sonnet', 'openai/gpt-4o'].join('\n');
+
+      const parseModelsOutput = (
+        provider as unknown as { parseModelsOutput: (output: string) => ModelDefinition[] }
+      ).parseModelsOutput.bind(provider);
+      const models = parseModelsOutput(output);
+
+      expect(models).toHaveLength(2);
+      const openrouterModel = models.find((model) => model.id.startsWith('openrouter/'));
+
+      expect(openrouterModel).toBeDefined();
+      expect(openrouterModel?.provider).toBe('openrouter');
+      expect(openrouterModel?.modelString).toBe('openrouter/anthropic/claude-3.5-sonnet');
     });
   });
 
@@ -1243,7 +1236,7 @@ describe('opencode-provider.ts', () => {
       const defaultModels = models.filter((m) => m.default === true);
 
       expect(defaultModels).toHaveLength(1);
-      expect(defaultModels[0].id).toBe('amazon-bedrock/anthropic.claude-sonnet-4-5-20250929-v1:0');
+      expect(defaultModels[0].id).toBe('opencode/big-pickle');
     });
 
     it('should have valid tier values for all models', () => {

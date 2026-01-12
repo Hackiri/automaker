@@ -23,6 +23,7 @@ import type {
   PipelineConfig,
   PipelineStep,
   PromptCustomization,
+  ModelDefinition,
 } from '@automaker/types';
 import {
   getAllCursorModelIds,
@@ -33,6 +34,8 @@ import {
 } from '@automaker/types';
 
 const logger = createLogger('AppStore');
+const OPENCODE_BEDROCK_PROVIDER_ID = 'amazon-bedrock';
+const OPENCODE_BEDROCK_MODEL_PREFIX = `${OPENCODE_BEDROCK_PROVIDER_ID}/`;
 
 // Re-export types for convenience
 export type {
@@ -583,8 +586,19 @@ export interface AppState {
   codexEnableImages: boolean; // Enable image processing
 
   // OpenCode CLI Settings (global)
-  enabledOpencodeModels: OpencodeModelId[]; // Which OpenCode models are available in feature modal
+  // Static OpenCode settings are persisted via SETTINGS_FIELDS_TO_SYNC
+  enabledOpencodeModels: OpencodeModelId[]; // Which static OpenCode models are available
   opencodeDefaultModel: OpencodeModelId; // Default OpenCode model selection
+  // Dynamic models are session-only (not persisted) because they're discovered at runtime
+  // from `opencode models` CLI and depend on current provider authentication state
+  dynamicOpencodeModels: ModelDefinition[]; // Dynamically discovered models from OpenCode CLI
+  enabledDynamicModelIds: string[]; // Which dynamic models are enabled
+  cachedOpencodeProviders: Array<{
+    id: string;
+    name: string;
+    authenticated: boolean;
+    authMethod?: string;
+  }>; // Cached providers
 
   // Claude Agent SDK Settings
   autoLoadClaudeMd: boolean; // Auto-load CLAUDE.md files using SDK's settingSources option
@@ -988,6 +1002,12 @@ export interface AppActions {
   setEnabledOpencodeModels: (models: OpencodeModelId[]) => void;
   setOpencodeDefaultModel: (model: OpencodeModelId) => void;
   toggleOpencodeModel: (model: OpencodeModelId, enabled: boolean) => void;
+  setDynamicOpencodeModels: (models: ModelDefinition[]) => void;
+  setEnabledDynamicModelIds: (ids: string[]) => void;
+  toggleDynamicModel: (modelId: string, enabled: boolean) => void;
+  setCachedOpencodeProviders: (
+    providers: Array<{ id: string; name: string; authenticated: boolean; authMethod?: string }>
+  ) => void;
 
   // Claude Agent SDK Settings actions
   setAutoLoadClaudeMd: (enabled: boolean) => Promise<void>;
@@ -1219,7 +1239,10 @@ const initialState: AppState = {
   codexEnableWebSearch: false, // Default to disabled
   codexEnableImages: false, // Default to disabled
   enabledOpencodeModels: getAllOpencodeModelIds(), // All OpenCode models enabled by default
-  opencodeDefaultModel: DEFAULT_OPENCODE_MODEL, // Default to Claude Sonnet 4.5
+  opencodeDefaultModel: DEFAULT_OPENCODE_MODEL, // Default to OpenCode free tier
+  dynamicOpencodeModels: [], // Empty until fetched from OpenCode CLI
+  enabledDynamicModelIds: [], // Empty until user enables dynamic models
+  cachedOpencodeProviders: [], // Empty until fetched from OpenCode CLI
   autoLoadClaudeMd: false, // Default to disabled (user must opt-in)
   skipSandboxWarning: false, // Default to disabled (show sandbox warning dialog)
   mcpServers: [], // No MCP servers configured by default
@@ -2017,6 +2040,34 @@ export const useAppStore = create<AppState & AppActions>()((set, get) => ({
         ? [...state.enabledOpencodeModels, model]
         : state.enabledOpencodeModels.filter((m) => m !== model),
     })),
+  setDynamicOpencodeModels: (models) => {
+    // Dynamic models depend on CLI authentication state and are re-discovered each session.
+    // Persist enabled model IDs, but do not auto-enable new models.
+    const filteredModels = models.filter(
+      (model) =>
+        model.provider !== OPENCODE_BEDROCK_PROVIDER_ID &&
+        !model.id.startsWith(OPENCODE_BEDROCK_MODEL_PREFIX)
+    );
+    const currentEnabled = get().enabledDynamicModelIds;
+    const newModelIds = filteredModels.map((m) => m.id);
+    const filteredEnabled = currentEnabled.filter((modelId) => newModelIds.includes(modelId));
+
+    const nextEnabled = currentEnabled.length === 0 ? [] : filteredEnabled;
+    set({ dynamicOpencodeModels: filteredModels, enabledDynamicModelIds: nextEnabled });
+  },
+  setEnabledDynamicModelIds: (ids) => set({ enabledDynamicModelIds: ids }),
+  toggleDynamicModel: (modelId, enabled) =>
+    set((state) => ({
+      enabledDynamicModelIds: enabled
+        ? [...state.enabledDynamicModelIds, modelId]
+        : state.enabledDynamicModelIds.filter((id) => id !== modelId),
+    })),
+  setCachedOpencodeProviders: (providers) =>
+    set({
+      cachedOpencodeProviders: providers.filter(
+        (provider) => provider.id !== OPENCODE_BEDROCK_PROVIDER_ID
+      ),
+    }),
 
   // Claude Agent SDK Settings actions
   setAutoLoadClaudeMd: async (enabled) => {

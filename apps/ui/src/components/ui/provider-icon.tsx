@@ -6,6 +6,7 @@ import { getProviderFromModel } from '@/lib/utils';
 const PROVIDER_ICON_KEYS = {
   anthropic: 'anthropic',
   openai: 'openai',
+  openrouter: 'openrouter',
   cursor: 'cursor',
   gemini: 'gemini',
   grok: 'grok',
@@ -40,6 +41,12 @@ const PROVIDER_ICON_DEFINITIONS: Record<ProviderIconKey, ProviderIconDefinition>
     viewBox: '0 0 158.7128 157.296',
     path: 'M60.8734,57.2556v-14.9432c0-1.2586.4722-2.2029,1.5728-2.8314l30.0443-17.3023c4.0899-2.3593,8.9662-3.4599,13.9988-3.4599,18.8759,0,30.8307,14.6289,30.8307,30.2006,0,1.1007,0,2.3593-.158,3.6178l-31.1446-18.2467c-1.8872-1.1006-3.7754-1.1006-5.6629,0l-39.4812,22.9651ZM131.0276,115.4561v-35.7074c0-2.2028-.9446-3.7756-2.8318-4.8763l-39.481-22.9651,12.8982-7.3934c1.1007-.6285,2.0453-.6285,3.1458,0l30.0441,17.3024c8.6523,5.0341,14.4708,15.7296,14.4708,26.1107,0,11.9539-7.0769,22.965-18.2461,27.527v.0021ZM51.593,83.9964l-12.8982-7.5497c-1.1007-.6285-1.5728-1.5728-1.5728-2.8314v-34.6048c0-16.8303,12.8982-29.5722,30.3585-29.5722,6.607,0,12.7403,2.2029,17.9324,6.1349l-30.987,17.9324c-1.8871,1.1007-2.8314,2.6735-2.8314,4.8764v45.6159l-.0014-.0015ZM79.3562,100.0403l-18.4829-10.3811v-22.0209l18.4829-10.3811,18.4812,10.3811v22.0209l-18.4812,10.3811ZM91.2319,147.8591c-6.607,0-12.7403-2.2031-17.9324-6.1344l30.9866-17.9333c1.8872-1.1005,2.8318-2.6728,2.8318-4.8759v-45.616l13.0564,7.5498c1.1005.6285,1.5723,1.5728,1.5723,2.8314v34.6051c0,16.8297-13.0564,29.5723-30.5147,29.5723v.001ZM53.9522,112.7822l-30.0443-17.3024c-8.652-5.0343-14.471-15.7296-14.471-26.1107,0-12.1119,7.2356-22.9652,18.403-27.5272v35.8634c0,2.2028.9443,3.7756,2.8314,4.8763l39.3248,22.8068-12.8982,7.3938c-1.1007.6287-2.045.6287-3.1456,0ZM52.2229,138.5791c-17.7745,0-30.8306-13.3713-30.8306-29.8871,0-1.2585.1578-2.5169.3143-3.7754l30.987,17.9323c1.8871,1.1005,3.7757,1.1005,5.6628,0l39.4811-22.807v14.9435c0,1.2585-.4721,2.2021-1.5728,2.8308l-30.0443,17.3025c-4.0898,2.359-8.9662,3.4605-13.9989,3.4605h.0014ZM91.2319,157.296c19.0327,0,34.9188-13.5272,38.5383-31.4594,17.6164-4.562,28.9425-21.0779,28.9425-37.908,0-11.0112-4.719-21.7066-13.2133-29.4143.7867-3.3035,1.2595-6.607,1.2595-9.909,0-22.4929-18.2471-39.3247-39.3251-39.3247-4.2461,0-8.3363.6285-12.4262,2.045-7.0792-6.9213-16.8318-11.3254-27.5271-11.3254-19.0331,0-34.9191,13.5268-38.5384,31.4591C11.3255,36.0212,0,52.5373,0,69.3675c0,11.0112,4.7184,21.7065,13.2125,29.4142-.7865,3.3035-1.2586,6.6067-1.2586,9.9092,0,22.4923,18.2466,39.3241,39.3248,39.3241,4.2462,0,8.3362-.6277,12.426-2.0441,7.0776,6.921,16.8302,11.3251,27.5271,11.3251Z',
     fill: '#74aa9c',
+  },
+  openrouter: {
+    viewBox: '0 0 24 24',
+    // OpenRouter logo from Simple Icons
+    path: 'M16.778 1.844v1.919q-.569-.026-1.138-.032-.708-.008-1.415.037c-1.93.126-4.023.728-6.149 2.237-2.911 2.066-2.731 1.95-4.14 2.75-.396.223-1.342.574-2.185.798-.841.225-1.753.333-1.751.333v4.229s.768.108 1.61.333c.842.224 1.789.575 2.185.799 1.41.798 1.228.683 4.14 2.75 2.126 1.509 4.22 2.11 6.148 2.236.88.058 1.716.041 2.555.005v1.918l7.222-4.168-7.222-4.17v2.176c-.86.038-1.611.065-2.278.021-1.364-.09-2.417-.357-3.979-1.465-2.244-1.593-2.866-2.027-3.68-2.508.889-.518 1.449-.906 3.822-2.59 1.56-1.109 2.614-1.377 3.978-1.466.667-.044 1.418-.017 2.278.02v2.176L24 6.014Z',
+    fill: '#94A3B8',
   },
   cursor: {
     viewBox: '0 0 512 512',
@@ -149,6 +156,10 @@ export function AnthropicIcon(props: Omit<ProviderIconProps, 'provider'>) {
 
 export function OpenAIIcon(props: Omit<ProviderIconProps, 'provider'>) {
   return <ProviderIcon provider={PROVIDER_ICON_KEYS.openai} {...props} />;
+}
+
+export function OpenRouterIcon(props: Omit<ProviderIconProps, 'provider'>) {
+  return <ProviderIcon provider={PROVIDER_ICON_KEYS.openrouter} {...props} />;
 }
 
 export function CursorIcon(props: Omit<ProviderIconProps, 'provider'>) {
@@ -396,6 +407,11 @@ function getUnderlyingModelIcon(model?: AgentModel | string): ProviderIconKey {
   const modelStr = typeof model === 'string' ? model.toLowerCase() : model;
 
   // Check for Amazon Bedrock models first (amazon-bedrock/...)
+  if (modelStr.startsWith('openrouter/')) {
+    return 'openrouter';
+  }
+
+  // Check for Amazon Bedrock models first (amazon-bedrock/...)
   if (modelStr.startsWith('amazon-bedrock/')) {
     // Bedrock-hosted models - detect the specific provider
     if (modelStr.includes('anthropic') || modelStr.includes('claude')) {
@@ -442,6 +458,71 @@ function getUnderlyingModelIcon(model?: AgentModel | string): ProviderIconKey {
     return 'opencode';
   }
 
+  // Check for dynamic OpenCode provider models (provider/model format)
+  // e.g., zai-coding-plan/glm-4.5, github-copilot/gpt-4o, google/gemini-2.5-pro
+  // Only handle strings with exactly one slash (not URLs or paths)
+  if (!modelStr.includes('://')) {
+    const slashIndex = modelStr.indexOf('/');
+    if (slashIndex !== -1 && slashIndex === modelStr.lastIndexOf('/')) {
+      const providerName = modelStr.slice(0, slashIndex);
+      const modelName = modelStr.slice(slashIndex + 1);
+
+      // Skip if either part is empty
+      if (providerName && modelName) {
+        // Check model name for known patterns
+        if (modelName.includes('glm')) {
+          return 'glm';
+        }
+        if (
+          modelName.includes('claude') ||
+          modelName.includes('sonnet') ||
+          modelName.includes('opus')
+        ) {
+          return 'anthropic';
+        }
+        if (modelName.includes('gpt') || modelName.includes('o1') || modelName.includes('o3')) {
+          return 'openai';
+        }
+        if (modelName.includes('gemini')) {
+          return 'gemini';
+        }
+        if (modelName.includes('grok')) {
+          return 'grok';
+        }
+        if (modelName.includes('deepseek')) {
+          return 'deepseek';
+        }
+        if (modelName.includes('llama')) {
+          return 'meta';
+        }
+        if (modelName.includes('qwen')) {
+          return 'qwen';
+        }
+        if (modelName.includes('mistral')) {
+          return 'mistral';
+        }
+        // Check provider name for hints
+        if (providerName.includes('google')) {
+          return 'gemini';
+        }
+        if (providerName.includes('anthropic')) {
+          return 'anthropic';
+        }
+        if (providerName.includes('openai')) {
+          return 'openai';
+        }
+        if (providerName.includes('openrouter')) {
+          return 'openrouter';
+        }
+        if (providerName.includes('xai')) {
+          return 'grok';
+        }
+        // Default for unknown dynamic models
+        return 'opencode';
+      }
+    }
+  }
+
   // Check for Cursor-specific models with underlying providers
   if (modelStr.includes('sonnet') || modelStr.includes('opus') || modelStr.includes('claude')) {
     return 'anthropic';
@@ -475,6 +556,7 @@ export function getProviderIconForModel(
   const iconMap: Record<ProviderIconKey, ComponentType<{ className?: string }>> = {
     anthropic: AnthropicIcon,
     openai: OpenAIIcon,
+    openrouter: OpenRouterIcon,
     cursor: CursorIcon,
     gemini: GeminiIcon,
     grok: GrokIcon,

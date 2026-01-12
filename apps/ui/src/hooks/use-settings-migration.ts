@@ -28,7 +28,11 @@ import { getHttpApiClient, waitForApiKeyInit } from '@/lib/http-api-client';
 import { getItem, setItem } from '@/lib/storage';
 import { useAppStore, THEME_STORAGE_KEY } from '@/store/app-store';
 import { useSetupStore } from '@/store/setup-store';
-import type { GlobalSettings } from '@automaker/types';
+import {
+  DEFAULT_OPENCODE_MODEL,
+  getAllOpencodeModelIds,
+  type GlobalSettings,
+} from '@automaker/types';
 
 const logger = createLogger('SettingsMigration');
 
@@ -152,6 +156,10 @@ export function parseLocalStorageSettings(): Partial<GlobalSettings> | null {
       phaseModels: state.phaseModels as GlobalSettings['phaseModels'],
       enabledCursorModels: state.enabledCursorModels as GlobalSettings['enabledCursorModels'],
       cursorDefaultModel: state.cursorDefaultModel as GlobalSettings['cursorDefaultModel'],
+      enabledOpencodeModels: state.enabledOpencodeModels as GlobalSettings['enabledOpencodeModels'],
+      opencodeDefaultModel: state.opencodeDefaultModel as GlobalSettings['opencodeDefaultModel'],
+      enabledDynamicModelIds:
+        state.enabledDynamicModelIds as GlobalSettings['enabledDynamicModelIds'],
       autoLoadClaudeMd: state.autoLoadClaudeMd as boolean,
       keyboardShortcuts: state.keyboardShortcuts as GlobalSettings['keyboardShortcuts'],
       mcpServers: state.mcpServers as GlobalSettings['mcpServers'],
@@ -495,6 +503,27 @@ export function useSettingsMigration(): MigrationState {
  */
 export function hydrateStoreFromSettings(settings: GlobalSettings): void {
   const current = useAppStore.getState();
+  const validOpencodeModelIds = new Set(getAllOpencodeModelIds());
+  const incomingEnabledOpencodeModels =
+    settings.enabledOpencodeModels ?? current.enabledOpencodeModels;
+  const sanitizedOpencodeDefaultModel = validOpencodeModelIds.has(
+    settings.opencodeDefaultModel ?? current.opencodeDefaultModel
+  )
+    ? (settings.opencodeDefaultModel ?? current.opencodeDefaultModel)
+    : DEFAULT_OPENCODE_MODEL;
+  const sanitizedEnabledOpencodeModels = Array.from(
+    new Set(incomingEnabledOpencodeModels.filter((modelId) => validOpencodeModelIds.has(modelId)))
+  );
+
+  if (!sanitizedEnabledOpencodeModels.includes(sanitizedOpencodeDefaultModel)) {
+    sanitizedEnabledOpencodeModels.push(sanitizedOpencodeDefaultModel);
+  }
+
+  const persistedDynamicModelIds =
+    settings.enabledDynamicModelIds ?? current.enabledDynamicModelIds;
+  const sanitizedDynamicModelIds = persistedDynamicModelIds.filter(
+    (modelId) => !modelId.startsWith('amazon-bedrock/')
+  );
 
   // Convert ProjectRef[] to Project[] (minimal data, features will be loaded separately)
   const projects = (settings.projects ?? []).map((ref) => ({
@@ -539,6 +568,9 @@ export function hydrateStoreFromSettings(settings: GlobalSettings): void {
     phaseModels: settings.phaseModels ?? current.phaseModels,
     enabledCursorModels: settings.enabledCursorModels ?? current.enabledCursorModels,
     cursorDefaultModel: settings.cursorDefaultModel ?? 'auto',
+    enabledOpencodeModels: sanitizedEnabledOpencodeModels,
+    opencodeDefaultModel: sanitizedOpencodeDefaultModel,
+    enabledDynamicModelIds: sanitizedDynamicModelIds,
     autoLoadClaudeMd: settings.autoLoadClaudeMd ?? false,
     skipSandboxWarning: settings.skipSandboxWarning ?? false,
     keyboardShortcuts: {
@@ -592,6 +624,7 @@ function buildSettingsUpdateFromStore(): Record<string, unknown> {
     enhancementModel: state.enhancementModel,
     validationModel: state.validationModel,
     phaseModels: state.phaseModels,
+    enabledDynamicModelIds: state.enabledDynamicModelIds,
     autoLoadClaudeMd: state.autoLoadClaudeMd,
     skipSandboxWarning: state.skipSandboxWarning,
     keyboardShortcuts: state.keyboardShortcuts,

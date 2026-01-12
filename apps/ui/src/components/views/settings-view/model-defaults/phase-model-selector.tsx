@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/app-store';
 import type {
@@ -25,18 +25,13 @@ import {
   THINKING_LEVEL_LABELS,
   REASONING_EFFORT_LEVELS,
   REASONING_EFFORT_LABELS,
+  type ModelOption,
 } from '@/components/views/board-view/shared/model-constants';
 import { Check, ChevronsUpDown, Star, ChevronRight } from 'lucide-react';
 import {
   AnthropicIcon,
   CursorIcon,
   OpenAIIcon,
-  OpenCodeIcon,
-  DeepSeekIcon,
-  NovaIcon,
-  QwenIcon,
-  MistralIcon,
-  MetaIcon,
   getProviderIconForModel,
 } from '@/components/ui/provider-icon';
 import { Button } from '@/components/ui/button';
@@ -50,6 +45,80 @@ import {
   CommandSeparator,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
+const OPENCODE_CLI_GROUP_LABEL = 'OpenCode CLI';
+const OPENCODE_PROVIDER_FALLBACK = 'opencode';
+const OPENCODE_PROVIDER_WORD_SEPARATOR = '-';
+const OPENCODE_MODEL_ID_SEPARATOR = '/';
+const OPENCODE_SECTION_GROUP_PADDING = 'pt-2';
+
+const OPENCODE_STATIC_PROVIDER_LABELS: Record<string, string> = {
+  [OPENCODE_PROVIDER_FALLBACK]: 'OpenCode (Free)',
+};
+
+const OPENCODE_DYNAMIC_PROVIDER_LABELS: Record<string, string> = {
+  'github-copilot': 'GitHub Copilot',
+  'zai-coding-plan': 'Z.AI Coding Plan',
+  google: 'Google AI',
+  openai: 'OpenAI',
+  openrouter: 'OpenRouter',
+  anthropic: 'Anthropic',
+  xai: 'xAI',
+  deepseek: 'DeepSeek',
+  ollama: 'Ollama (Local)',
+  lmstudio: 'LM Studio (Local)',
+  azure: 'Azure OpenAI',
+  [OPENCODE_PROVIDER_FALLBACK]: 'OpenCode (Free)',
+};
+
+const OPENCODE_DYNAMIC_PROVIDER_ORDER = [
+  'github-copilot',
+  'google',
+  'openai',
+  'openrouter',
+  'anthropic',
+  'xai',
+  'deepseek',
+  'ollama',
+  'lmstudio',
+  'azure',
+  'zai-coding-plan',
+];
+
+const OPENCODE_SECTION_ORDER = ['free', 'dynamic'] as const;
+
+const OPENCODE_SECTION_LABELS: Record<(typeof OPENCODE_SECTION_ORDER)[number], string> = {
+  free: 'Free Tier',
+  dynamic: 'Connected Providers',
+};
+
+const OPENCODE_STATIC_PROVIDER_BY_ID = new Map(
+  OPENCODE_MODELS.map((model) => [model.id, model.provider])
+);
+
+function formatProviderLabel(providerKey: string): string {
+  return providerKey
+    .split(OPENCODE_PROVIDER_WORD_SEPARATOR)
+    .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : word))
+    .join(' ');
+}
+
+function getOpencodeSectionKey(providerKey: string): (typeof OPENCODE_SECTION_ORDER)[number] {
+  if (providerKey === OPENCODE_PROVIDER_FALLBACK) {
+    return 'free';
+  }
+  return 'dynamic';
+}
+
+function getOpencodeGroupLabel(
+  providerKey: string,
+  sectionKey: (typeof OPENCODE_SECTION_ORDER)[number]
+): string {
+  if (sectionKey === 'free') {
+    return OPENCODE_STATIC_PROVIDER_LABELS[providerKey] || 'OpenCode Free Tier';
+  }
+  return OPENCODE_DYNAMIC_PROVIDER_LABELS[providerKey] || formatProviderLabel(providerKey);
+}
 
 interface PhaseModelSelectorProps {
   /** Label shown in full mode */
@@ -95,6 +164,7 @@ export function PhaseModelSelector({
     codexModels,
     codexModelsLoading,
     fetchCodexModels,
+    dynamicOpencodeModels,
   } = useAppStore();
 
   // Extract model and thinking/reasoning levels from value
@@ -235,12 +305,30 @@ export function PhaseModelSelector({
     const codexModel = transformedCodexModels.find((m) => m.id === selectedModel);
     if (codexModel) return { ...codexModel, icon: OpenAIIcon };
 
-    // Check OpenCode models
+    // Check OpenCode models (static) - use dynamic icon resolution for provider-specific icons
     const opencodeModel = OPENCODE_MODELS.find((m) => m.id === selectedModel);
-    if (opencodeModel) return { ...opencodeModel, icon: OpenCodeIcon };
+    if (opencodeModel) return { ...opencodeModel, icon: getProviderIconForModel(opencodeModel.id) };
+
+    // Check dynamic OpenCode models - use dynamic icon resolution for provider-specific icons
+    const dynamicModel = dynamicOpencodeModels.find((m) => m.id === selectedModel);
+    if (dynamicModel) {
+      return {
+        id: dynamicModel.id,
+        label: dynamicModel.name,
+        description: dynamicModel.description,
+        provider: 'opencode' as const,
+        icon: getProviderIconForModel(dynamicModel.id),
+      };
+    }
 
     return null;
-  }, [selectedModel, selectedThinkingLevel, availableCursorModels, transformedCodexModels]);
+  }, [
+    selectedModel,
+    selectedThinkingLevel,
+    availableCursorModels,
+    transformedCodexModels,
+    dynamicOpencodeModels,
+  ]);
 
   // Compute grouped vs standalone Cursor models
   const { groupedModels, standaloneCursorModels } = useMemo(() => {
@@ -275,13 +363,35 @@ export function PhaseModelSelector({
     return { groupedModels: grouped, standaloneCursorModels: standalone };
   }, [availableCursorModels, enabledCursorModels]);
 
+  // Combine static and dynamic OpenCode models
+  const allOpencodeModels: ModelOption[] = useMemo(() => {
+    // Start with static models
+    const staticModels = [...OPENCODE_MODELS];
+
+    // Add dynamic models (convert ModelDefinition to ModelOption)
+    const dynamicModelOptions: ModelOption[] = dynamicOpencodeModels.map((model) => ({
+      id: model.id,
+      label: model.name,
+      description: model.description,
+      badge: model.tier === 'premium' ? 'Premium' : model.tier === 'basic' ? 'Free' : undefined,
+      provider: 'opencode' as const,
+    }));
+
+    // Merge, avoiding duplicates (static models take precedence for same ID)
+    // In practice, static and dynamic IDs don't overlap
+    const staticIds = new Set(staticModels.map((m) => m.id));
+    const uniqueDynamic = dynamicModelOptions.filter((m) => !staticIds.has(m.id));
+
+    return [...staticModels, ...uniqueDynamic];
+  }, [dynamicOpencodeModels]);
+
   // Group models
   const { favorites, claude, cursor, codex, opencode } = useMemo(() => {
     const favs: typeof CLAUDE_MODELS = [];
     const cModels: typeof CLAUDE_MODELS = [];
     const curModels: typeof CURSOR_MODELS = [];
     const codModels: typeof transformedCodexModels = [];
-    const ocModels: typeof OPENCODE_MODELS = [];
+    const ocModels: ModelOption[] = [];
 
     // Process Claude Models
     CLAUDE_MODELS.forEach((model) => {
@@ -310,8 +420,8 @@ export function PhaseModelSelector({
       }
     });
 
-    // Process OpenCode Models
-    OPENCODE_MODELS.forEach((model) => {
+    // Process OpenCode Models (including dynamic)
+    allOpencodeModels.forEach((model) => {
       if (favoriteModels.includes(model.id)) {
         favs.push(model);
       } else {
@@ -326,7 +436,95 @@ export function PhaseModelSelector({
       codex: codModels,
       opencode: ocModels,
     };
-  }, [favoriteModels, availableCursorModels, transformedCodexModels]);
+  }, [favoriteModels, availableCursorModels, transformedCodexModels, allOpencodeModels]);
+
+  // Group OpenCode models by model type for better organization
+  const opencodeSections = useMemo(() => {
+    type OpencodeSectionKey = (typeof OPENCODE_SECTION_ORDER)[number];
+    type OpencodeGroup = { key: string; label: string; models: ModelOption[] };
+    type OpencodeSection = {
+      key: OpencodeSectionKey;
+      label: string;
+      showGroupLabels: boolean;
+      groups: OpencodeGroup[];
+    };
+
+    const sections: Record<OpencodeSectionKey, Record<string, OpencodeGroup>> = {
+      free: {},
+      dynamic: {},
+    };
+    const dynamicProviderById = new Map(
+      dynamicOpencodeModels.map((model) => [model.id, model.provider])
+    );
+
+    const resolveProviderKey = (modelId: string): string => {
+      const staticProvider = OPENCODE_STATIC_PROVIDER_BY_ID.get(modelId);
+      if (staticProvider) return staticProvider;
+
+      const dynamicProvider = dynamicProviderById.get(modelId);
+      if (dynamicProvider) return dynamicProvider;
+
+      return modelId.includes(OPENCODE_MODEL_ID_SEPARATOR)
+        ? modelId.split(OPENCODE_MODEL_ID_SEPARATOR)[0]
+        : OPENCODE_PROVIDER_FALLBACK;
+    };
+
+    const addModelToGroup = (
+      sectionKey: OpencodeSectionKey,
+      providerKey: string,
+      model: ModelOption
+    ) => {
+      if (!sections[sectionKey][providerKey]) {
+        sections[sectionKey][providerKey] = {
+          key: providerKey,
+          label: getOpencodeGroupLabel(providerKey, sectionKey),
+          models: [],
+        };
+      }
+      sections[sectionKey][providerKey].models.push(model);
+    };
+
+    opencode.forEach((model) => {
+      const providerKey = resolveProviderKey(model.id);
+      const sectionKey = getOpencodeSectionKey(providerKey);
+      addModelToGroup(sectionKey, providerKey, model);
+    });
+
+    const buildGroupList = (sectionKey: OpencodeSectionKey): OpencodeGroup[] => {
+      const groupMap = sections[sectionKey];
+      const priorityOrder = sectionKey === 'dynamic' ? OPENCODE_DYNAMIC_PROVIDER_ORDER : [];
+      const priorityMap = new Map(priorityOrder.map((provider, index) => [provider, index]));
+
+      return Object.keys(groupMap)
+        .sort((a, b) => {
+          const aPriority = priorityMap.get(a);
+          const bPriority = priorityMap.get(b);
+
+          if (aPriority !== undefined && bPriority !== undefined) {
+            return aPriority - bPriority;
+          }
+          if (aPriority !== undefined) return -1;
+          if (bPriority !== undefined) return 1;
+
+          return groupMap[a].label.localeCompare(groupMap[b].label);
+        })
+        .map((key) => groupMap[key]);
+    };
+
+    const builtSections = OPENCODE_SECTION_ORDER.map((sectionKey) => {
+      const groups = buildGroupList(sectionKey);
+      if (groups.length === 0) return null;
+
+      return {
+        key: sectionKey,
+        label: OPENCODE_SECTION_LABELS[sectionKey],
+        showGroupLabels: sectionKey !== 'free',
+        groups,
+      };
+    }).filter(Boolean) as OpencodeSection[];
+
+    return builtSections;
+  }, [opencode, dynamicOpencodeModels]);
 
   // Render Codex model item with secondary popover for reasoning effort (only for models that support it)
   const renderCodexModelItem = (model: (typeof transformedCodexModels)[0]) => {
@@ -992,9 +1190,32 @@ export function PhaseModelSelector({
             </CommandGroup>
           )}
 
-          {opencode.length > 0 && (
-            <CommandGroup heading="OpenCode Models">
-              {opencode.map((model) => renderOpencodeModelItem(model))}
+          {opencodeSections.length > 0 && (
+            <CommandGroup heading={OPENCODE_CLI_GROUP_LABEL}>
+              {opencodeSections.map((section, sectionIndex) => (
+                <Fragment key={section.key}>
+                  <div className="px-2 pt-2 text-xs font-medium text-muted-foreground">
+                    {section.label}
+                  </div>
+                  <div
+                    className={cn(
+                      'space-y-2',
+                      section.key === 'dynamic' && OPENCODE_SECTION_GROUP_PADDING
+                    )}
+                  >
+                    {section.groups.map((group) => (
+                      <div key={group.key} className="space-y-1">
+                        {section.showGroupLabels && (
+                          <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                            {group.label}
+                          </div>
+                        )}
+                        {group.models.map((model) => renderOpencodeModelItem(model))}
+                      </div>
+                    ))}
+                  </div>
+                </Fragment>
+              ))}
             </CommandGroup>
           )}
         </CommandList>

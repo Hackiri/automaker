@@ -19,7 +19,11 @@ import { useAppStore, type ThemeMode, THEME_STORAGE_KEY } from '@/store/app-stor
 import { useSetupStore } from '@/store/setup-store';
 import { useAuthStore } from '@/store/auth-store';
 import { waitForMigrationComplete, resetMigrationState } from './use-settings-migration';
-import type { GlobalSettings } from '@automaker/types';
+import {
+  DEFAULT_OPENCODE_MODEL,
+  getAllOpencodeModelIds,
+  type GlobalSettings,
+} from '@automaker/types';
 
 const logger = createLogger('SettingsSync');
 
@@ -44,6 +48,9 @@ const SETTINGS_FIELDS_TO_SYNC = [
   'phaseModels',
   'enabledCursorModels',
   'cursorDefaultModel',
+  'enabledOpencodeModels',
+  'opencodeDefaultModel',
+  'enabledDynamicModelIds',
   'autoLoadClaudeMd',
   'keyboardShortcuts',
   'mcpServers',
@@ -421,6 +428,27 @@ export async function refreshSettingsFromServer(): Promise<boolean> {
 
     const serverSettings = result.settings as unknown as GlobalSettings;
     const currentAppState = useAppStore.getState();
+    const validOpencodeModelIds = new Set(getAllOpencodeModelIds());
+    const incomingEnabledOpencodeModels =
+      serverSettings.enabledOpencodeModels ?? currentAppState.enabledOpencodeModels;
+    const sanitizedOpencodeDefaultModel = validOpencodeModelIds.has(
+      serverSettings.opencodeDefaultModel ?? currentAppState.opencodeDefaultModel
+    )
+      ? (serverSettings.opencodeDefaultModel ?? currentAppState.opencodeDefaultModel)
+      : DEFAULT_OPENCODE_MODEL;
+    const sanitizedEnabledOpencodeModels = Array.from(
+      new Set(incomingEnabledOpencodeModels.filter((modelId) => validOpencodeModelIds.has(modelId)))
+    );
+
+    if (!sanitizedEnabledOpencodeModels.includes(sanitizedOpencodeDefaultModel)) {
+      sanitizedEnabledOpencodeModels.push(sanitizedOpencodeDefaultModel);
+    }
+
+    const persistedDynamicModelIds =
+      serverSettings.enabledDynamicModelIds ?? currentAppState.enabledDynamicModelIds;
+    const sanitizedDynamicModelIds = persistedDynamicModelIds.filter(
+      (modelId) => !modelId.startsWith('amazon-bedrock/')
+    );
 
     // Save theme to localStorage for fallback when server settings aren't available
     if (serverSettings.theme) {
@@ -444,6 +472,9 @@ export async function refreshSettingsFromServer(): Promise<boolean> {
       phaseModels: serverSettings.phaseModels,
       enabledCursorModels: serverSettings.enabledCursorModels,
       cursorDefaultModel: serverSettings.cursorDefaultModel,
+      enabledOpencodeModels: sanitizedEnabledOpencodeModels,
+      opencodeDefaultModel: sanitizedOpencodeDefaultModel,
+      enabledDynamicModelIds: sanitizedDynamicModelIds,
       autoLoadClaudeMd: serverSettings.autoLoadClaudeMd ?? false,
       keyboardShortcuts: {
         ...currentAppState.keyboardShortcuts,
