@@ -47,6 +47,13 @@ fi
 chown -R automaker:automaker /home/automaker/.cache/opencode
 chmod -R 700 /home/automaker/.cache/opencode
 
+# Ensure npm cache directory exists with correct permissions
+# This is needed for using npx to run MCP servers
+if [ ! -d "/home/automaker/.npm" ]; then
+    mkdir -p /home/automaker/.npm
+fi
+chown -R automaker:automaker /home/automaker/.npm
+
 # If CURSOR_AUTH_TOKEN is set, write it to the cursor auth file
 # On Linux, cursor-agent uses ~/.config/cursor/auth.json for file-based credential storage
 # The env var CURSOR_AUTH_TOKEN is also checked directly by cursor-agent
