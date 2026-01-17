@@ -175,11 +175,17 @@ app.use(
         return;
       }
 
-      // For local development, allow localhost origins
+      // For local development, allow all localhost/loopback origins (any port)
+      const url = new URL(origin);
+      const hostname = url.hostname;
       if (
-        origin.startsWith('http://localhost:') ||
-        origin.startsWith('http://127.0.0.1:') ||
-        origin.startsWith('http://[::1]:')
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname === '::1' ||
+        hostname === '0.0.0.0' ||
+        hostname.startsWith('192.168.') ||
+        hostname.startsWith('10.') ||
+        hostname.startsWith('172.')
       ) {
         callback(null, origin);
         return;
