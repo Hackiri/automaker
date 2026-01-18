@@ -240,6 +240,23 @@ eventHookService.initialize(events, settingsService, eventHistoryService);
 
 // Initialize services
 (async () => {
+  // Migrate settings from legacy Electron userData location if needed
+  // This handles users upgrading from versions that stored settings in ~/.config/Automaker (Linux),
+  // ~/Library/Application Support/Automaker (macOS), or %APPDATA%\Automaker (Windows)
+  // to the new shared ./data directory
+  try {
+    const migrationResult = await settingsService.migrateFromLegacyElectronPath();
+    if (migrationResult.migrated) {
+      logger.info(`Settings migrated from legacy location: ${migrationResult.legacyPath}`);
+      logger.info(`Migrated files: ${migrationResult.migratedFiles.join(', ')}`);
+    }
+    if (migrationResult.errors.length > 0) {
+      logger.warn('Migration errors:', migrationResult.errors);
+    }
+  } catch (err) {
+    logger.warn('Failed to check for legacy settings migration:', err);
+  }
+
   // Apply logging settings from saved settings
   try {
     const settings = await settingsService.getGlobalSettings();

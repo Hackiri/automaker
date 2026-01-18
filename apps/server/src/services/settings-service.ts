@@ -9,6 +9,9 @@
 
 import { createLogger, atomicWriteJson, DEFAULT_BACKUP_COUNT } from '@automaker/utils';
 import * as secureFs from '../lib/secure-fs.js';
+import os from 'os';
+import path from 'path';
+import fs from 'fs/promises';
 
 import {
   getGlobalSettingsPath,
@@ -791,5 +794,150 @@ export class SettingsService {
    */
   getDataDir(): string {
     return this.dataDir;
+  }
+
+  /**
+   * Get the legacy Electron userData directory path
+   *
+   * Returns the platform-specific path where Electron previously stored settings
+   * before the migration to shared data directories.
+   *
+   * @returns Absolute path to legacy userData directory
+   */
+  private getLegacyElectronUserDataPath(): string {
+    const homeDir = os.homedir();
+
+    switch (process.platform) {
+      case 'darwin':
+        // macOS: ~/Library/Application Support/Automaker
+        return path.join(homeDir, 'Library', 'Application Support', 'Automaker');
+      case 'win32':
+        // Windows: %APPDATA%\Automaker
+        return path.join(
+          process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming'),
+          'Automaker'
+        );
+      default:
+        // Linux and others: ~/.config/Automaker
+        return path.join(process.env.XDG_CONFIG_HOME || path.join(homeDir, '.config'), 'Automaker');
+    }
+  }
+
+  /**
+   * Migrate settings from legacy Electron userData location to new shared data directory
+   *
+   * This handles the migration from when Electron stored settings in the platform-specific
+   * userData directory (e.g., ~/.config/Automaker) to the new shared ./data directory.
+   *
+   * Migration only occurs if:
+   * 1. The new location does NOT have settings.json
+   * 2. The legacy location DOES have settings.json
+   *
+   * Files migrated: settings.json, credentials.json
+   *
+   * @returns Promise resolving to migration result
+   */
+  async migrateFromLegacyElectronPath(): Promise<{
+    migrated: boolean;
+    migratedFiles: string[];
+    legacyPath: string;
+    errors: string[];
+  }> {
+    const legacyPath = this.getLegacyElectronUserDataPath();
+    const migratedFiles: string[] = [];
+    const errors: string[] = [];
+
+    // Skip if legacy path is the same as current data dir (no migration needed)
+    if (path.resolve(legacyPath) === path.resolve(this.dataDir)) {
+      logger.debug('Legacy path same as current data dir, skipping migration');
+      return { migrated: false, migratedFiles, legacyPath, errors };
+    }
+
+    logger.info(`Checking for legacy settings migration from: ${legacyPath}`);
+    logger.info(`Current data directory: ${this.dataDir}`);
+
+    // Check if new settings already exist
+    const newSettingsPath = getGlobalSettingsPath(this.dataDir);
+    let newSettingsExist = false;
+    try {
+      await fs.access(newSettingsPath);
+      newSettingsExist = true;
+    } catch {
+      // New settings don't exist, migration may be needed
+    }
+
+    if (newSettingsExist) {
+      logger.debug('Settings already exist in new location, skipping migration');
+      return { migrated: false, migratedFiles, legacyPath, errors };
+    }
+
+    // Check if legacy settings exist
+    const legacySettingsPath = path.join(legacyPath, 'settings.json');
+    let legacySettingsExist = false;
+    try {
+      await fs.access(legacySettingsPath);
+      legacySettingsExist = true;
+    } catch {
+      // Legacy settings don't exist
+    }
+
+    if (!legacySettingsExist) {
+      logger.debug('No legacy settings found, skipping migration');
+      return { migrated: false, migratedFiles, legacyPath, errors };
+    }
+
+    // Perform migration
+    logger.info('Found legacy settings, migrating to new location...');
+
+    // Ensure new data directory exists
+    try {
+      await ensureDataDir(this.dataDir);
+    } catch (error) {
+      const msg = `Failed to create data directory: ${error}`;
+      logger.error(msg);
+      errors.push(msg);
+      return { migrated: false, migratedFiles, legacyPath, errors };
+    }
+
+    // Migrate settings.json
+    try {
+      const settingsContent = await fs.readFile(legacySettingsPath, 'utf-8');
+      await fs.writeFile(newSettingsPath, settingsContent, 'utf-8');
+      migratedFiles.push('settings.json');
+      logger.info('Migrated settings.json from legacy location');
+    } catch (error) {
+      const msg = `Failed to migrate settings.json: ${error}`;
+      logger.error(msg);
+      errors.push(msg);
+    }
+
+    // Migrate credentials.json if it exists
+    const legacyCredentialsPath = path.join(legacyPath, 'credentials.json');
+    const newCredentialsPath = getCredentialsPath(this.dataDir);
+    try {
+      await fs.access(legacyCredentialsPath);
+      const credentialsContent = await fs.readFile(legacyCredentialsPath, 'utf-8');
+      await fs.writeFile(newCredentialsPath, credentialsContent, 'utf-8');
+      migratedFiles.push('credentials.json');
+      logger.info('Migrated credentials.json from legacy location');
+    } catch {
+      // Credentials file doesn't exist in legacy location, that's fine
+      logger.debug('No legacy credentials.json found');
+    }
+
+    if (migratedFiles.length > 0) {
+      logger.info(
+        `Migration complete. Migrated ${migratedFiles.length} file(s): ${migratedFiles.join(', ')}`
+      );
+      logger.info(`Legacy path: ${legacyPath}`);
+      logger.info(`New path: ${this.dataDir}`);
+    }
+
+    return {
+      migrated: migratedFiles.length > 0,
+      migratedFiles,
+      legacyPath,
+      errors,
+    };
   }
 }
