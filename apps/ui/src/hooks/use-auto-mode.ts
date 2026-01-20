@@ -93,10 +93,12 @@ export function useAutoMode(worktree?: WorktreeInfo) {
     }))
   );
 
-  // Derive branchName from worktree: main worktree uses null, feature worktrees use their branch
+  // Derive branchName from worktree:
+  // If worktree is provided, use its branch name (even for main worktree, as it might be on a feature branch)
+  // If not provided, default to null (main worktree default)
   const branchName = useMemo(() => {
     if (!worktree) return null;
-    return worktree.isMain ? null : worktree.branch;
+    return worktree.isMain ? null : worktree.branch || null;
   }, [worktree]);
 
   // Helper to look up project ID from path
@@ -155,7 +157,13 @@ export function useAutoMode(worktree?: WorktreeInfo) {
             logger.info(
               `[AutoMode] Syncing UI state with backend for ${worktreeDesc} in ${currentProject.path}: ${backendIsRunning ? 'ON' : 'OFF'}`
             );
-            setAutoModeRunning(currentProject.id, branchName, backendIsRunning);
+            setAutoModeRunning(
+              currentProject.id,
+              branchName,
+              backendIsRunning,
+              result.maxConcurrency,
+              result.runningFeatures
+            );
             setAutoModeSessionForWorktree(currentProject.path, branchName, backendIsRunning);
           }
         }
@@ -165,7 +173,7 @@ export function useAutoMode(worktree?: WorktreeInfo) {
     };
 
     syncWithBackend();
-  }, [currentProject, branchName, isAutoModeRunning, setAutoModeRunning]);
+  }, [currentProject, branchName, setAutoModeRunning]);
 
   // Handle auto mode events - listen globally for all projects/worktrees
   useEffect(() => {
@@ -212,6 +220,26 @@ export function useAutoMode(worktree?: WorktreeInfo) {
                   : getMaxConcurrencyForWorktree(eventProjectId, eventBranchName);
               setAutoModeRunning(eventProjectId, eventBranchName, true, eventMaxConcurrency);
             }
+          }
+          break;
+
+        case 'auto_mode_resuming_features':
+          // Backend is resuming features from saved state
+          if (eventProjectId && 'features' in event && Array.isArray(event.features)) {
+            logger.info(`[AutoMode] Resuming ${event.features.length} feature(s) from saved state`);
+            // Use per-feature branchName if available, fallback to event-level branchName
+            event.features.forEach((feature: { id: string; branchName?: string | null }) => {
+              const featureBranchName = feature.branchName ?? eventBranchName;
+              addRunningTask(eventProjectId, featureBranchName, feature.id);
+            });
+          } else if (eventProjectId && 'featureIds' in event && Array.isArray(event.featureIds)) {
+            // Fallback for older event format without per-feature branchName
+            logger.info(
+              `[AutoMode] Resuming ${event.featureIds.length} feature(s) from saved state (legacy format)`
+            );
+            event.featureIds.forEach((featureId: string) => {
+              addRunningTask(eventProjectId, eventBranchName, featureId);
+            });
           }
           break;
 
@@ -484,11 +512,16 @@ export function useAutoMode(worktree?: WorktreeInfo) {
       logger.info(`[AutoMode] Starting auto loop for ${worktreeDesc} in ${currentProject.path}`);
 
       // Optimistically update UI state (backend will confirm via event)
+      const currentMaxConcurrency = getMaxConcurrencyForWorktree(currentProject.id, branchName);
       setAutoModeSessionForWorktree(currentProject.path, branchName, true);
-      setAutoModeRunning(currentProject.id, branchName, true);
+      setAutoModeRunning(currentProject.id, branchName, true, currentMaxConcurrency);
 
-      // Call backend to start the auto loop (backend uses stored concurrency)
-      const result = await api.autoMode.start(currentProject.path, branchName);
+      // Call backend to start the auto loop (pass current max concurrency)
+      const result = await api.autoMode.start(
+        currentProject.path,
+        branchName,
+        currentMaxConcurrency
+      );
 
       if (!result.success) {
         // Revert UI state on failure

@@ -249,7 +249,7 @@ notificationService.setEventEmitter(events);
 const eventHistoryService = getEventHistoryService();
 
 // Initialize Event Hook Service for custom event triggers (with history storage)
-eventHookService.initialize(events, settingsService, eventHistoryService);
+eventHookService.initialize(events, settingsService, eventHistoryService, featureLoader);
 
 // Initialize services
 (async () => {

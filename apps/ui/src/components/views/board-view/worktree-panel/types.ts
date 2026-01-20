@@ -61,6 +61,12 @@ export interface PRInfo {
   }>;
 }
 
+export interface MergeConflictInfo {
+  sourceBranch: string;
+  targetBranch: string;
+  targetWorktreePath: string;
+}
+
 export interface WorktreePanelProps {
   projectPath: string;
   onCreateWorktree: () => void;
@@ -70,7 +76,9 @@ export interface WorktreePanelProps {
   onCreateBranch: (worktree: WorktreeInfo) => void;
   onAddressPRComments: (worktree: WorktreeInfo, prInfo: PRInfo) => void;
   onResolveConflicts: (worktree: WorktreeInfo) => void;
-  onMerge: (worktree: WorktreeInfo) => void;
+  onCreateMergeConflictResolutionFeature?: (conflictInfo: MergeConflictInfo) => void;
+  /** Called when a branch is deleted during merge - features should be reassigned to main */
+  onBranchDeletedDuringMerge?: (branchName: string) => void;
   onRemovedWorktrees?: (removedWorktrees: Array<{ path: string; branch: string }>) => void;
   runningFeatureIds?: string[];
   features?: FeatureInfo[];

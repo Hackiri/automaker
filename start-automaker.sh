@@ -9,7 +9,7 @@ set -e
 # ============================================================================
 # CONFIGURATION & CONSTANTS
 # ============================================================================
-
+export $(grep -v '^#' .env | xargs)
 APP_NAME="Automaker"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HISTORY_FILE="${HOME}/.automaker_launcher_history"
@@ -579,7 +579,7 @@ validate_terminal_size() {
         echo "${C_YELLOW}⚠${RESET}  Terminal size ${term_width}x${term_height} is smaller than recommended ${MIN_TERM_WIDTH}x${MIN_TERM_HEIGHT}"
         echo "    Some elements may not display correctly."
         echo ""
-        return 1
+        return 0
     fi
 }
 
@@ -1154,6 +1154,7 @@ fi
 # Execute the appropriate command
 case $MODE in
     web)
+        export $(grep -v '^#' .env | xargs) 
         export TEST_PORT="$WEB_PORT"
         export VITE_SERVER_URL="http://${APP_HOST}:$SERVER_PORT"
         export PORT="$SERVER_PORT"

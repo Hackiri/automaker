@@ -339,7 +339,7 @@ IMPORTANT CONTEXT (automatically injected):
 - When deleting a feature, identify which other features depend on it
 
 Your task is to analyze the request and produce a structured JSON plan with:
-1. Features to ADD (include title, description, category, and dependencies)
+1. Features to ADD (include id, title, description, category, and dependencies)
 2. Features to UPDATE (specify featureId and the updates)
 3. Features to DELETE (specify featureId)
 4. A summary of the changes
@@ -352,6 +352,7 @@ Respond with ONLY a JSON object in this exact format:
     {
       "type": "add",
       "feature": {
+        "id": "descriptive-kebab-case-id",
         "title": "Feature title",
         "description": "Feature description",
         "category": "feature" | "bug" | "enhancement" | "refactor",
@@ -386,6 +387,8 @@ Respond with ONLY a JSON object in this exact format:
 \`\`\`
 
 Important rules:
+- CRITICAL: For new features, always include a descriptive "id" in kebab-case (e.g., "user-authentication", "design-system-foundation")
+- Dependencies must reference these exact IDs - both for existing features and new features being added in the same plan
 - Only include fields that need to change in updates
 - Ensure dependency references are valid (don't reference deleted features)
 - Provide clear, actionable descriptions

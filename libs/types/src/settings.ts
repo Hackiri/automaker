@@ -802,6 +802,18 @@ export interface GlobalSettings {
    * When set, the corresponding profile's settings will be used for Claude API calls
    */
   activeClaudeApiProfileId?: string | null;
+
+  /**
+   * Per-worktree auto mode settings
+   * Key: "${projectId}::${branchName ?? '__main__'}"
+   */
+  autoModeByWorktree?: Record<
+    string,
+    {
+      maxConcurrency: number;
+      branchName: string | null;
+    }
+  >;
 }
 
 /**
@@ -1071,6 +1083,7 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   subagentsSources: ['user', 'project'],
   claudeApiProfiles: [],
   activeClaudeApiProfileId: null,
+  autoModeByWorktree: {},
 };
 
 /** Default credentials (empty strings - user must provide API keys) */

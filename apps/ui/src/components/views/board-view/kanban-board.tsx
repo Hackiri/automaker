@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode, UIEvent, RefObject } from 'react';
-import { DndContext, DragOverlay } from '@dnd-kit/core';
+import { useMemo } from 'react';
+import { DragOverlay } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button } from '@/components/ui/button';
 import { KanbanColumn, KanbanCard, EmptyStateCard } from './components';
@@ -11,10 +10,6 @@ import { getColumnsWithPipeline, type ColumnId } from './constants';
 import type { PipelineConfig } from '@automaker/types';
 import { cn } from '@/lib/utils';
 interface KanbanBoardProps {
-  sensors: any;
-  collisionDetectionStrategy: (args: any) => any;
-  onDragStart: (event: any) => void;
-  onDragEnd: (event: any) => void;
   activeFeature: Feature | null;
   getColumnFeatures: (columnId: ColumnId) => Feature[];
   backgroundImageStyle: React.CSSProperties;
@@ -259,10 +254,6 @@ function VirtualizedList<Item extends VirtualListItem>({
 }
 
 export function KanbanBoard({
-  sensors,
-  collisionDetectionStrategy,
-  onDragStart,
-  onDragEnd,
   activeFeature,
   getColumnFeatures,
   backgroundImageStyle,
@@ -319,131 +310,99 @@ export function KanbanBoard({
       )}
       style={backgroundImageStyle}
     >
-      <DndContext
-        sensors={sensors}
-        collisionDetection={collisionDetectionStrategy}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-      >
-        <div className="h-full py-1" style={containerStyle}>
-          {columns.map((column) => {
-            const columnFeatures = getColumnFeatures(column.id as ColumnId);
-            return (
-              <VirtualizedList
-                key={column.id}
-                items={columnFeatures}
-                isDragging={isDragging}
-                estimatedItemHeight={KANBAN_CARD_ESTIMATED_HEIGHT_PX}
-                itemGap={KANBAN_CARD_GAP_PX}
-                overscan={KANBAN_OVERSCAN_COUNT}
-                virtualizationThreshold={KANBAN_VIRTUALIZATION_THRESHOLD}
-              >
-                {({
-                  contentRef,
-                  onScroll,
-                  itemIds,
-                  visibleItems,
-                  totalHeight,
-                  offsetTop,
-                  startIndex,
-                  shouldVirtualize,
-                  registerItem,
-                }) => (
-                  <KanbanColumn
-                    id={column.id}
-                    title={column.title}
-                    colorClass={column.colorClass}
-                    count={columnFeatures.length}
-                    width={columnWidth}
-                    opacity={backgroundSettings.columnOpacity}
-                    showBorder={backgroundSettings.columnBorderEnabled}
-                    hideScrollbar={backgroundSettings.hideScrollbar}
-                    contentRef={contentRef}
-                    onScroll={shouldVirtualize ? onScroll : undefined}
-                    disableItemSpacing={shouldVirtualize}
-                    contentClassName="perf-contain"
-                    headerAction={
-                      column.id === 'verified' ? (
-                        <div className="flex items-center gap-1">
-                          {columnFeatures.length > 0 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-2 text-xs"
-                              onClick={onArchiveAllVerified}
-                              data-testid="archive-all-verified-button"
-                            >
-                              <Archive className="w-3 h-3 mr-1" />
-                              Complete All
-                            </Button>
-                          )}
+      <div className="h-full py-1" style={containerStyle}>
+        {columns.map((column) => {
+          const columnFeatures = getColumnFeatures(column.id as ColumnId);
+          return (
+            <VirtualizedList
+              key={column.id}
+              items={columnFeatures}
+              isDragging={isDragging}
+              estimatedItemHeight={KANBAN_CARD_ESTIMATED_HEIGHT_PX}
+              itemGap={KANBAN_CARD_GAP_PX}
+              overscan={KANBAN_OVERSCAN_COUNT}
+              virtualizationThreshold={KANBAN_VIRTUALIZATION_THRESHOLD}
+            >
+              {({
+                contentRef,
+                onScroll,
+                itemIds,
+                visibleItems,
+                totalHeight,
+                offsetTop,
+                startIndex,
+                shouldVirtualize,
+                registerItem,
+              }) => (
+                <KanbanColumn
+                  id={column.id}
+                  title={column.title}
+                  colorClass={column.colorClass}
+                  count={columnFeatures.length}
+                  width={columnWidth}
+                  opacity={backgroundSettings.columnOpacity}
+                  showBorder={backgroundSettings.columnBorderEnabled}
+                  hideScrollbar={backgroundSettings.hideScrollbar}
+                  contentRef={contentRef}
+                  onScroll={shouldVirtualize ? onScroll : undefined}
+                  disableItemSpacing={shouldVirtualize}
+                  contentClassName="perf-contain"
+                  headerAction={
+                    column.id === 'verified' ? (
+                      <div className="flex items-center gap-1">
+                        {columnFeatures.length > 0 && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0 relative"
-                            onClick={onShowCompletedModal}
-                            title={`Completed Features (${completedCount})`}
-                            data-testid="completed-features-button"
+                            className="h-6 px-2 text-xs"
+                            onClick={onArchiveAllVerified}
+                            data-testid="archive-all-verified-button"
                           >
-                            <Archive className="w-3.5 h-3.5 text-muted-foreground" />
-                            {completedCount > 0 && (
-                              <span className="absolute -top-1 -right-1 bg-brand-500 text-white text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">
-                                {completedCount > 99 ? '99+' : completedCount}
-                              </span>
-                            )}
+                            <Archive className="w-3 h-3 mr-1" />
+                            Complete All
                           </Button>
-                        </div>
-                      ) : column.id === 'backlog' ? (
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={onAddFeature}
-                            title="Add Feature"
-                            data-testid="add-feature-button"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className={`h-6 px-2 text-xs ${selectionTarget === 'backlog' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
-                            onClick={() => onToggleSelectionMode?.('backlog')}
-                            title={
-                              selectionTarget === 'backlog'
-                                ? 'Switch to Drag Mode'
-                                : 'Select Multiple'
-                            }
-                            data-testid="selection-mode-button"
-                          >
-                            {selectionTarget === 'backlog' ? (
-                              <>
-                                <GripVertical className="w-3.5 h-3.5 mr-1" />
-                                Drag
-                              </>
-                            ) : (
-                              <>
-                                <CheckSquare className="w-3.5 h-3.5 mr-1" />
-                                Select
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      ) : column.id === 'waiting_approval' ? (
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`h-6 px-2 text-xs ${selectionTarget === 'waiting_approval' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
-                          onClick={() => onToggleSelectionMode?.('waiting_approval')}
+                          className="h-6 w-6 p-0 relative"
+                          onClick={onShowCompletedModal}
+                          title={`Completed Features (${completedCount})`}
+                          data-testid="completed-features-button"
+                        >
+                          <Archive className="w-3.5 h-3.5 text-muted-foreground" />
+                          {completedCount > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-brand-500 text-white text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">
+                              {completedCount > 99 ? '99+' : completedCount}
+                            </span>
+                          )}
+                        </Button>
+                      </div>
+                    ) : column.id === 'backlog' ? (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={onAddFeature}
+                          title="Add Feature"
+                          data-testid="add-feature-button"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`h-6 px-2 text-xs ${selectionTarget === 'backlog' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                          onClick={() => onToggleSelectionMode?.('backlog')}
                           title={
-                            selectionTarget === 'waiting_approval'
+                            selectionTarget === 'backlog'
                               ? 'Switch to Drag Mode'
                               : 'Select Multiple'
                           }
-                          data-testid="waiting-approval-selection-mode-button"
+                          data-testid="selection-mode-button"
                         >
-                          {selectionTarget === 'waiting_approval' ? (
+                          {selectionTarget === 'backlog' ? (
                             <>
                               <GripVertical className="w-3.5 h-3.5 mr-1" />
                               Drag
@@ -455,221 +414,242 @@ export function KanbanBoard({
                             </>
                           )}
                         </Button>
-                      ) : column.id === 'in_progress' ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                          onClick={onOpenPipelineSettings}
-                          title="Pipeline Settings"
-                          data-testid="pipeline-settings-button"
-                        >
-                          <Settings2 className="w-3.5 h-3.5" />
-                        </Button>
-                      ) : column.isPipelineStep ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                          onClick={onOpenPipelineSettings}
-                          title="Edit Pipeline Step"
-                          data-testid="edit-pipeline-step-button"
-                        >
-                          <Settings2 className="w-3.5 h-3.5" />
-                        </Button>
-                      ) : undefined
-                    }
-                    footerAction={
-                      column.id === 'backlog' ? (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="w-full h-9 text-sm"
-                          onClick={onAddFeature}
-                          data-testid="add-feature-floating-button"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add Feature
-                          <span className="ml-auto pl-2 text-[10px] font-mono opacity-70 bg-black/20 px-1.5 py-0.5 rounded">
-                            {formatShortcut(addFeatureShortcut, true)}
-                          </span>
-                        </Button>
-                      ) : undefined
-                    }
-                  >
-                    {(() => {
-                      const reduceEffects = shouldVirtualize;
-                      const effectiveCardOpacity = reduceEffects
-                        ? Math.min(backgroundSettings.cardOpacity, REDUCED_CARD_OPACITY_PERCENT)
-                        : backgroundSettings.cardOpacity;
-                      const effectiveGlassmorphism =
-                        backgroundSettings.cardGlassmorphism && !reduceEffects;
+                      </div>
+                    ) : column.id === 'waiting_approval' ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`h-6 px-2 text-xs ${selectionTarget === 'waiting_approval' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                        onClick={() => onToggleSelectionMode?.('waiting_approval')}
+                        title={
+                          selectionTarget === 'waiting_approval'
+                            ? 'Switch to Drag Mode'
+                            : 'Select Multiple'
+                        }
+                        data-testid="waiting-approval-selection-mode-button"
+                      >
+                        {selectionTarget === 'waiting_approval' ? (
+                          <>
+                            <GripVertical className="w-3.5 h-3.5 mr-1" />
+                            Drag
+                          </>
+                        ) : (
+                          <>
+                            <CheckSquare className="w-3.5 h-3.5 mr-1" />
+                            Select
+                          </>
+                        )}
+                      </Button>
+                    ) : column.id === 'in_progress' ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                        onClick={onOpenPipelineSettings}
+                        title="Pipeline Settings"
+                        data-testid="pipeline-settings-button"
+                      >
+                        <Settings2 className="w-3.5 h-3.5" />
+                      </Button>
+                    ) : column.isPipelineStep ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                        onClick={onOpenPipelineSettings}
+                        title="Edit Pipeline Step"
+                        data-testid="edit-pipeline-step-button"
+                      >
+                        <Settings2 className="w-3.5 h-3.5" />
+                      </Button>
+                    ) : undefined
+                  }
+                  footerAction={
+                    column.id === 'backlog' ? (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="w-full h-9 text-sm"
+                        onClick={onAddFeature}
+                        data-testid="add-feature-floating-button"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Feature
+                        <span className="ml-auto pl-2 text-[10px] font-mono opacity-70 bg-black/20 px-1.5 py-0.5 rounded">
+                          {formatShortcut(addFeatureShortcut, true)}
+                        </span>
+                      </Button>
+                    ) : undefined
+                  }
+                >
+                  {(() => {
+                    const reduceEffects = shouldVirtualize;
+                    const effectiveCardOpacity = reduceEffects
+                      ? Math.min(backgroundSettings.cardOpacity, REDUCED_CARD_OPACITY_PERCENT)
+                      : backgroundSettings.cardOpacity;
+                    const effectiveGlassmorphism =
+                      backgroundSettings.cardGlassmorphism && !reduceEffects;
 
-                      return (
-                        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-                          {/* Empty state card when column has no features */}
-                          {columnFeatures.length === 0 && !isDragging && (
-                            <EmptyStateCard
-                              columnId={column.id}
-                              columnTitle={column.title}
-                              addFeatureShortcut={addFeatureShortcut}
-                              isReadOnly={isReadOnly}
-                              onAiSuggest={column.id === 'backlog' ? onAiSuggest : undefined}
-                              opacity={effectiveCardOpacity}
-                              glassmorphism={effectiveGlassmorphism}
-                              customConfig={
-                                column.isPipelineStep
-                                  ? {
-                                      title: `${column.title} Empty`,
-                                      description: `Features will appear here during the ${column.title.toLowerCase()} phase of the pipeline.`,
-                                    }
-                                  : undefined
-                              }
-                            />
-                          )}
-                          {shouldVirtualize ? (
-                            <div className="relative" style={{ height: totalHeight }}>
-                              <div
-                                className="absolute left-0 right-0"
-                                style={{ transform: `translateY(${offsetTop}px)` }}
-                              >
-                                {visibleItems.map((feature, index) => {
-                                  const absoluteIndex = startIndex + index;
-                                  let shortcutKey: string | undefined;
-                                  if (column.id === 'in_progress' && absoluteIndex < 10) {
-                                    shortcutKey =
-                                      absoluteIndex === 9 ? '0' : String(absoluteIndex + 1);
+                    return (
+                      <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+                        {/* Empty state card when column has no features */}
+                        {columnFeatures.length === 0 && !isDragging && (
+                          <EmptyStateCard
+                            columnId={column.id}
+                            columnTitle={column.title}
+                            addFeatureShortcut={addFeatureShortcut}
+                            isReadOnly={isReadOnly}
+                            onAiSuggest={column.id === 'backlog' ? onAiSuggest : undefined}
+                            opacity={effectiveCardOpacity}
+                            glassmorphism={effectiveGlassmorphism}
+                            customConfig={
+                              column.isPipelineStep
+                                ? {
+                                    title: `${column.title} Empty`,
+                                    description: `Features will appear here during the ${column.title.toLowerCase()} phase of the pipeline.`,
                                   }
-                                  return (
-                                    <div
-                                      key={feature.id}
-                                      ref={registerItem(feature.id)}
-                                      style={{ marginBottom: `${KANBAN_CARD_GAP_PX}px` }}
-                                    >
-                                      <KanbanCard
-                                        feature={feature}
-                                        onEdit={() => onEdit(feature)}
-                                        onDelete={() => onDelete(feature.id)}
-                                        onViewOutput={() => onViewOutput(feature)}
-                                        onVerify={() => onVerify(feature)}
-                                        onResume={() => onResume(feature)}
-                                        onForceStop={() => onForceStop(feature)}
-                                        onManualVerify={() => onManualVerify(feature)}
-                                        onMoveBackToInProgress={() =>
-                                          onMoveBackToInProgress(feature)
-                                        }
-                                        onFollowUp={() => onFollowUp(feature)}
-                                        onComplete={() => onComplete(feature)}
-                                        onImplement={() => onImplement(feature)}
-                                        onViewPlan={() => onViewPlan(feature)}
-                                        onApprovePlan={() => onApprovePlan(feature)}
-                                        onSpawnTask={() => onSpawnTask?.(feature)}
-                                        hasContext={featuresWithContext.has(feature.id)}
-                                        isCurrentAutoTask={runningAutoTasks.includes(feature.id)}
-                                        shortcutKey={shortcutKey}
-                                        opacity={effectiveCardOpacity}
-                                        glassmorphism={effectiveGlassmorphism}
-                                        cardBorderEnabled={backgroundSettings.cardBorderEnabled}
-                                        cardBorderOpacity={backgroundSettings.cardBorderOpacity}
-                                        reduceEffects={reduceEffects}
-                                        isSelectionMode={isSelectionMode}
-                                        selectionTarget={selectionTarget}
-                                        isSelected={selectedFeatureIds.has(feature.id)}
-                                        onToggleSelect={() =>
-                                          onToggleFeatureSelection?.(feature.id)
-                                        }
-                                      />
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                                : undefined
+                            }
+                          />
+                        )}
+                        {shouldVirtualize ? (
+                          <div className="relative" style={{ height: totalHeight }}>
+                            <div
+                              className="absolute left-0 right-0"
+                              style={{ transform: `translateY(${offsetTop}px)` }}
+                            >
+                              {visibleItems.map((feature, index) => {
+                                const absoluteIndex = startIndex + index;
+                                let shortcutKey: string | undefined;
+                                if (column.id === 'in_progress' && absoluteIndex < 10) {
+                                  shortcutKey =
+                                    absoluteIndex === 9 ? '0' : String(absoluteIndex + 1);
+                                }
+                                return (
+                                  <div
+                                    key={feature.id}
+                                    ref={registerItem(feature.id)}
+                                    style={{ marginBottom: `${KANBAN_CARD_GAP_PX}px` }}
+                                  >
+                                    <KanbanCard
+                                      feature={feature}
+                                      onEdit={() => onEdit(feature)}
+                                      onDelete={() => onDelete(feature.id)}
+                                      onViewOutput={() => onViewOutput(feature)}
+                                      onVerify={() => onVerify(feature)}
+                                      onResume={() => onResume(feature)}
+                                      onForceStop={() => onForceStop(feature)}
+                                      onManualVerify={() => onManualVerify(feature)}
+                                      onMoveBackToInProgress={() => onMoveBackToInProgress(feature)}
+                                      onFollowUp={() => onFollowUp(feature)}
+                                      onComplete={() => onComplete(feature)}
+                                      onImplement={() => onImplement(feature)}
+                                      onViewPlan={() => onViewPlan(feature)}
+                                      onApprovePlan={() => onApprovePlan(feature)}
+                                      onSpawnTask={() => onSpawnTask?.(feature)}
+                                      hasContext={featuresWithContext.has(feature.id)}
+                                      isCurrentAutoTask={runningAutoTasks.includes(feature.id)}
+                                      shortcutKey={shortcutKey}
+                                      opacity={effectiveCardOpacity}
+                                      glassmorphism={effectiveGlassmorphism}
+                                      cardBorderEnabled={backgroundSettings.cardBorderEnabled}
+                                      cardBorderOpacity={backgroundSettings.cardBorderOpacity}
+                                      reduceEffects={reduceEffects}
+                                      isSelectionMode={isSelectionMode}
+                                      selectionTarget={selectionTarget}
+                                      isSelected={selectedFeatureIds.has(feature.id)}
+                                      onToggleSelect={() => onToggleFeatureSelection?.(feature.id)}
+                                    />
+                                  </div>
+                                );
+                              })}
                             </div>
-                          ) : (
-                            columnFeatures.map((feature, index) => {
-                              let shortcutKey: string | undefined;
-                              if (column.id === 'in_progress' && index < 10) {
-                                shortcutKey = index === 9 ? '0' : String(index + 1);
-                              }
-                              return (
-                                <KanbanCard
-                                  key={feature.id}
-                                  feature={feature}
-                                  onEdit={() => onEdit(feature)}
-                                  onDelete={() => onDelete(feature.id)}
-                                  onViewOutput={() => onViewOutput(feature)}
-                                  onVerify={() => onVerify(feature)}
-                                  onResume={() => onResume(feature)}
-                                  onForceStop={() => onForceStop(feature)}
-                                  onManualVerify={() => onManualVerify(feature)}
-                                  onMoveBackToInProgress={() => onMoveBackToInProgress(feature)}
-                                  onFollowUp={() => onFollowUp(feature)}
-                                  onComplete={() => onComplete(feature)}
-                                  onImplement={() => onImplement(feature)}
-                                  onViewPlan={() => onViewPlan(feature)}
-                                  onApprovePlan={() => onApprovePlan(feature)}
-                                  onSpawnTask={() => onSpawnTask?.(feature)}
-                                  hasContext={featuresWithContext.has(feature.id)}
-                                  isCurrentAutoTask={runningAutoTasks.includes(feature.id)}
-                                  shortcutKey={shortcutKey}
-                                  opacity={effectiveCardOpacity}
-                                  glassmorphism={effectiveGlassmorphism}
-                                  cardBorderEnabled={backgroundSettings.cardBorderEnabled}
-                                  cardBorderOpacity={backgroundSettings.cardBorderOpacity}
-                                  reduceEffects={reduceEffects}
-                                  isSelectionMode={isSelectionMode}
-                                  selectionTarget={selectionTarget}
-                                  isSelected={selectedFeatureIds.has(feature.id)}
-                                  onToggleSelect={() => onToggleFeatureSelection?.(feature.id)}
-                                />
-                              );
-                            })
-                          )}
-                        </SortableContext>
-                      );
-                    })()}
-                  </KanbanColumn>
-                )}
-              </VirtualizedList>
-            );
-          })}
-        </div>
+                          </div>
+                        ) : (
+                          columnFeatures.map((feature, index) => {
+                            let shortcutKey: string | undefined;
+                            if (column.id === 'in_progress' && index < 10) {
+                              shortcutKey = index === 9 ? '0' : String(index + 1);
+                            }
+                            return (
+                              <KanbanCard
+                                key={feature.id}
+                                feature={feature}
+                                onEdit={() => onEdit(feature)}
+                                onDelete={() => onDelete(feature.id)}
+                                onViewOutput={() => onViewOutput(feature)}
+                                onVerify={() => onVerify(feature)}
+                                onResume={() => onResume(feature)}
+                                onForceStop={() => onForceStop(feature)}
+                                onManualVerify={() => onManualVerify(feature)}
+                                onMoveBackToInProgress={() => onMoveBackToInProgress(feature)}
+                                onFollowUp={() => onFollowUp(feature)}
+                                onComplete={() => onComplete(feature)}
+                                onImplement={() => onImplement(feature)}
+                                onViewPlan={() => onViewPlan(feature)}
+                                onApprovePlan={() => onApprovePlan(feature)}
+                                onSpawnTask={() => onSpawnTask?.(feature)}
+                                hasContext={featuresWithContext.has(feature.id)}
+                                isCurrentAutoTask={runningAutoTasks.includes(feature.id)}
+                                shortcutKey={shortcutKey}
+                                opacity={effectiveCardOpacity}
+                                glassmorphism={effectiveGlassmorphism}
+                                cardBorderEnabled={backgroundSettings.cardBorderEnabled}
+                                cardBorderOpacity={backgroundSettings.cardBorderOpacity}
+                                reduceEffects={reduceEffects}
+                                isSelectionMode={isSelectionMode}
+                                selectionTarget={selectionTarget}
+                                isSelected={selectedFeatureIds.has(feature.id)}
+                                onToggleSelect={() => onToggleFeatureSelection?.(feature.id)}
+                              />
+                            );
+                          })
+                        )}
+                      </SortableContext>
+                    );
+                  })()}
+                </KanbanColumn>
+              )}
+            </VirtualizedList>
+          );
+        })}
+      </div>
 
-        <DragOverlay
-          dropAnimation={{
-            duration: 200,
-            easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
-          }}
-        >
-          {activeFeature && (
-            <div style={{ width: `${columnWidth}px` }}>
-              <KanbanCard
-                feature={activeFeature}
-                isOverlay
-                onEdit={() => {}}
-                onDelete={() => {}}
-                onViewOutput={() => {}}
-                onVerify={() => {}}
-                onResume={() => {}}
-                onForceStop={() => {}}
-                onManualVerify={() => {}}
-                onMoveBackToInProgress={() => {}}
-                onFollowUp={() => {}}
-                onImplement={() => {}}
-                onComplete={() => {}}
-                onViewPlan={() => {}}
-                onApprovePlan={() => {}}
-                onSpawnTask={() => {}}
-                hasContext={featuresWithContext.has(activeFeature.id)}
-                isCurrentAutoTask={runningAutoTasks.includes(activeFeature.id)}
-                opacity={backgroundSettings.cardOpacity}
-                glassmorphism={backgroundSettings.cardGlassmorphism}
-                cardBorderEnabled={backgroundSettings.cardBorderEnabled}
-                cardBorderOpacity={backgroundSettings.cardBorderOpacity}
-              />
-            </div>
-          )}
-        </DragOverlay>
-      </DndContext>
+      <DragOverlay
+        dropAnimation={{
+          duration: 200,
+          easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+        }}
+      >
+        {activeFeature && (
+          <div style={{ width: `${columnWidth}px` }}>
+            <KanbanCard
+              feature={activeFeature}
+              isOverlay
+              onEdit={() => {}}
+              onDelete={() => {}}
+              onViewOutput={() => {}}
+              onVerify={() => {}}
+              onResume={() => {}}
+              onForceStop={() => {}}
+              onManualVerify={() => {}}
+              onMoveBackToInProgress={() => {}}
+              onFollowUp={() => {}}
+              onImplement={() => {}}
+              onComplete={() => {}}
+              onViewPlan={() => {}}
+              onApprovePlan={() => {}}
+              onSpawnTask={() => {}}
+              hasContext={featuresWithContext.has(activeFeature.id)}
+              isCurrentAutoTask={runningAutoTasks.includes(activeFeature.id)}
+              opacity={backgroundSettings.cardOpacity}
+              glassmorphism={backgroundSettings.cardGlassmorphism}
+              cardBorderEnabled={backgroundSettings.cardBorderEnabled}
+              cardBorderOpacity={backgroundSettings.cardBorderOpacity}
+            />
+          </div>
+        )}
+      </DragOverlay>
     </div>
   );
 }

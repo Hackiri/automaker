@@ -415,16 +415,25 @@ export class SettingsService {
     ignoreEmptyArrayOverwrite('claudeApiProfiles');
 
     // Empty object overwrite guard
-    if (
-      sanitizedUpdates.lastSelectedSessionByProject &&
-      typeof sanitizedUpdates.lastSelectedSessionByProject === 'object' &&
-      !Array.isArray(sanitizedUpdates.lastSelectedSessionByProject) &&
-      Object.keys(sanitizedUpdates.lastSelectedSessionByProject).length === 0 &&
-      current.lastSelectedSessionByProject &&
-      Object.keys(current.lastSelectedSessionByProject).length > 0
-    ) {
-      delete sanitizedUpdates.lastSelectedSessionByProject;
-    }
+    const ignoreEmptyObjectOverwrite = <K extends keyof GlobalSettings>(key: K): void => {
+      const nextVal = sanitizedUpdates[key] as unknown;
+      const curVal = current[key] as unknown;
+      if (
+        nextVal &&
+        typeof nextVal === 'object' &&
+        !Array.isArray(nextVal) &&
+        Object.keys(nextVal).length === 0 &&
+        curVal &&
+        typeof curVal === 'object' &&
+        !Array.isArray(curVal) &&
+        Object.keys(curVal).length > 0
+      ) {
+        delete sanitizedUpdates[key];
+      }
+    };
+
+    ignoreEmptyObjectOverwrite('lastSelectedSessionByProject');
+    ignoreEmptyObjectOverwrite('autoModeByWorktree');
 
     // If a request attempted to wipe projects, also ignore theme changes in that same request.
     if (attemptedProjectWipe) {

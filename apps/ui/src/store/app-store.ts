@@ -1074,7 +1074,8 @@ export interface AppActions {
     projectId: string,
     branchName: string | null,
     running: boolean,
-    maxConcurrency?: number
+    maxConcurrency?: number,
+    runningTasks?: string[]
   ) => void;
   addRunningTask: (projectId: string, branchName: string | null, taskId: string) => void;
   removeRunningTask: (projectId: string, branchName: string | null, taskId: string) => void;
@@ -2155,10 +2156,19 @@ export const useAppStore = create<AppState & AppActions>()((set, get) => ({
 
   // Auto Mode actions (per-worktree)
   getWorktreeKey: (projectId, branchName) => {
-    return `${projectId}::${branchName ?? '__main__'}`;
+    // Normalize 'main' to null so it matches the main worktree key
+    // The backend sometimes sends 'main' while the UI uses null for the main worktree
+    const normalizedBranch = branchName === 'main' ? null : branchName;
+    return `${projectId}::${normalizedBranch ?? '__main__'}`;
   },
 
-  setAutoModeRunning: (projectId, branchName, running, maxConcurrency?: number) => {
+  setAutoModeRunning: (
+    projectId: string,
+    branchName: string | null,
+    running: boolean,
+    maxConcurrency?: number,
+    runningTasks?: string[]
+  ) => {
     const worktreeKey = get().getWorktreeKey(projectId, branchName);
     const current = get().autoModeByWorktree;
     const worktreeState = current[worktreeKey] || {
@@ -2175,6 +2185,7 @@ export const useAppStore = create<AppState & AppActions>()((set, get) => ({
           isRunning: running,
           branchName,
           maxConcurrency: maxConcurrency ?? worktreeState.maxConcurrency ?? DEFAULT_MAX_CONCURRENCY,
+          runningTasks: runningTasks ?? worktreeState.runningTasks,
         },
       },
     });

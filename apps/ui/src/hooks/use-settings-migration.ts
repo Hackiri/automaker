@@ -212,6 +212,8 @@ export function parseLocalStorageSettings(): Partial<GlobalSettings> | null {
       claudeApiProfiles: (state.claudeApiProfiles as GlobalSettings['claudeApiProfiles']) ?? [],
       activeClaudeApiProfileId:
         (state.activeClaudeApiProfileId as GlobalSettings['activeClaudeApiProfileId']) ?? null,
+      // Event hooks
+      eventHooks: state.eventHooks as GlobalSettings['eventHooks'],
     };
   } catch (error) {
     logger.error('Failed to parse localStorage settings:', error);

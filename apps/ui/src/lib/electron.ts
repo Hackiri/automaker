@@ -1566,15 +1566,18 @@ function createMockWorktreeAPI(): WorktreeAPI {
       projectPath: string,
       branchName: string,
       worktreePath: string,
+      targetBranch?: string,
       options?: object
     ) => {
+      const target = targetBranch || 'main';
       console.log('[Mock] Merging feature:', {
         projectPath,
         branchName,
         worktreePath,
+        targetBranch: target,
         options,
       });
-      return { success: true, mergedBranch: branchName };
+      return { success: true, mergedBranch: branchName, targetBranch: target };
     },
 
     getInfo: async (projectPath: string, featureId: string) => {
@@ -1684,14 +1687,15 @@ function createMockWorktreeAPI(): WorktreeAPI {
       };
     },
 
-    push: async (worktreePath: string, force?: boolean) => {
-      console.log('[Mock] Pushing worktree:', { worktreePath, force });
+    push: async (worktreePath: string, force?: boolean, remote?: string) => {
+      const targetRemote = remote || 'origin';
+      console.log('[Mock] Pushing worktree:', { worktreePath, force, remote: targetRemote });
       return {
         success: true,
         result: {
           branch: 'feature-branch',
           pushed: true,
-          message: 'Successfully pushed to origin/feature-branch',
+          message: `Successfully pushed to ${targetRemote}/feature-branch`,
         },
       };
     },
@@ -1777,6 +1781,7 @@ function createMockWorktreeAPI(): WorktreeAPI {
           ],
           aheadCount: 2,
           behindCount: 0,
+          hasRemoteBranch: true,
         },
       };
     },
@@ -1789,6 +1794,26 @@ function createMockWorktreeAPI(): WorktreeAPI {
           previousBranch: 'main',
           currentBranch: branchName,
           message: `Switched to branch '${branchName}'`,
+        },
+      };
+    },
+
+    listRemotes: async (worktreePath: string) => {
+      console.log('[Mock] Listing remotes for:', worktreePath);
+      return {
+        success: true,
+        result: {
+          remotes: [
+            {
+              name: 'origin',
+              url: 'git@github.com:example/repo.git',
+              branches: [
+                { name: 'main', fullRef: 'origin/main' },
+                { name: 'develop', fullRef: 'origin/develop' },
+                { name: 'feature/example', fullRef: 'origin/feature/example' },
+              ],
+            },
+          ],
         },
       };
     },

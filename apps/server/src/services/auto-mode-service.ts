@@ -248,7 +248,8 @@ interface AutoModeConfig {
  * @param branchName - The branch name, or null for main worktree
  */
 function getWorktreeAutoLoopKey(projectPath: string, branchName: string | null): string {
-  return `${projectPath}::${branchName ?? '__main__'}`;
+  const normalizedBranch = branchName === 'main' ? null : branchName;
+  return `${projectPath}::${normalizedBranch ?? '__main__'}`;
 }
 
 /**
@@ -514,14 +515,11 @@ export class AutoModeService {
           ? settings.maxConcurrency
           : DEFAULT_MAX_CONCURRENCY;
       const projectId = settings.projects?.find((project) => project.path === projectPath)?.id;
-      const autoModeByWorktree = (settings as unknown as Record<string, unknown>)
-        .autoModeByWorktree;
+      const autoModeByWorktree = settings.autoModeByWorktree;
 
       if (projectId && autoModeByWorktree && typeof autoModeByWorktree === 'object') {
         const key = `${projectId}::${branchName ?? '__main__'}`;
-        const entry = (autoModeByWorktree as Record<string, unknown>)[key] as
-          | { maxConcurrency?: number }
-          | undefined;
+        const entry = autoModeByWorktree[key];
         if (entry && typeof entry.maxConcurrency === 'number') {
           return entry.maxConcurrency;
         }
@@ -592,6 +590,7 @@ export class AutoModeService {
       message: `Auto mode started with max ${resolvedMaxConcurrency} concurrent features`,
       projectPath,
       branchName,
+      maxConcurrency: resolvedMaxConcurrency,
     });
 
     // Save execution state for recovery after restart
@@ -677,8 +676,10 @@ export class AutoModeService {
           continue;
         }
 
-        // Find a feature not currently running
-        const nextFeature = pendingFeatures.find((f) => !this.runningFeatures.has(f.id));
+        // Find a feature not currently running and not yet finished
+        const nextFeature = pendingFeatures.find(
+          (f) => !this.runningFeatures.has(f.id) && !this.isFeatureFinished(f)
+        );
 
         if (nextFeature) {
           logger.info(`[AutoLoop] Starting feature ${nextFeature.id}: ${nextFeature.title}`);
@@ -730,11 +731,12 @@ export class AutoModeService {
    * @param branchName - The branch name, or null for main worktree (features without branchName or with "main")
    */
   private getRunningCountForWorktree(projectPath: string, branchName: string | null): number {
+    const normalizedBranch = branchName === 'main' ? null : branchName;
     let count = 0;
     for (const [, feature] of this.runningFeatures) {
       // Filter by project path AND branchName to get accurate worktree-specific count
       const featureBranch = feature.branchName ?? null;
-      if (branchName === null) {
+      if (normalizedBranch === null) {
         // Main worktree: match features with branchName === null OR branchName === "main"
         if (
           feature.projectPath === projectPath &&
@@ -999,6 +1001,41 @@ export class AutoModeService {
   }
 
   /**
+   * Check if there's capacity to start a feature on a worktree.
+   * This respects per-worktree agent limits from autoModeByWorktree settings.
+   *
+   * @param projectPath - The main project path
+   * @param featureId - The feature ID to check capacity for
+   * @returns Object with hasCapacity boolean and details about current/max agents
+   */
+  async checkWorktreeCapacity(
+    projectPath: string,
+    featureId: string
+  ): Promise<{
+    hasCapacity: boolean;
+    currentAgents: number;
+    maxAgents: number;
+    branchName: string | null;
+  }> {
+    // Load feature to get branchName
+    const feature = await this.loadFeature(projectPath, featureId);
+    const branchName = feature?.branchName ?? null;
+
+    // Get per-worktree limit
+    const maxAgents = await this.resolveMaxConcurrency(projectPath, branchName);
+
+    // Get current running count for this worktree
+    const currentAgents = this.getRunningCountForWorktree(projectPath, branchName);
+
+    return {
+      hasCapacity: currentAgents < maxAgents,
+      currentAgents,
+      maxAgents,
+      branchName,
+    };
+  }
+
+  /**
    * Execute a single feature
    * @param projectPath - The main project path
    * @param featureId - The feature ID to execute
@@ -1036,7 +1073,6 @@ export class AutoModeService {
     if (isAutoMode) {
       await this.saveExecutionState(projectPath);
     }
-
     // Declare feature outside try block so it's available in catch for error reporting
     let feature: Awaited<ReturnType<typeof this.loadFeature>> | null = null;
 
@@ -1044,9 +1080,44 @@ export class AutoModeService {
       // Validate that project path is allowed using centralized validation
       validateWorkingDirectory(projectPath);
 
+      // Load feature details FIRST to get status and plan info
+      feature = await this.loadFeature(projectPath, featureId);
+      if (!feature) {
+        throw new Error(`Feature ${featureId} not found`);
+      }
+
       // Check if feature has existing context - if so, resume instead of starting fresh
       // Skip this check if we're already being called with a continuation prompt (from resumeFeature)
       if (!options?.continuationPrompt) {
+        // If feature has an approved plan but we don't have a continuation prompt yet,
+        // we should build one to ensure it proceeds with multi-agent execution
+        if (feature.planSpec?.status === 'approved') {
+          logger.info(`Feature ${featureId} has approved plan, building continuation prompt`);
+
+          // Get customized prompts from settings
+          const prompts = await getPromptCustomization(this.settingsService, '[AutoMode]');
+          const planContent = feature.planSpec.content || '';
+
+          // Build continuation prompt using centralized template
+          let continuationPrompt = prompts.taskExecution.continuationAfterApprovalTemplate;
+          continuationPrompt = continuationPrompt.replace(/\{\{userFeedback\}\}/g, '');
+          continuationPrompt = continuationPrompt.replace(/\{\{approvedPlan\}\}/g, planContent);
+
+          // Recursively call executeFeature with the continuation prompt
+          // Remove from running features temporarily, it will be added back
+          this.runningFeatures.delete(featureId);
+          return this.executeFeature(
+            projectPath,
+            featureId,
+            useWorktrees,
+            isAutoMode,
+            providedWorktreePath,
+            {
+              continuationPrompt,
+            }
+          );
+        }
+
         const hasExistingContext = await this.contextExists(projectPath, featureId);
         if (hasExistingContext) {
           logger.info(
@@ -1056,12 +1127,6 @@ export class AutoModeService {
           this.runningFeatures.delete(featureId);
           return this.resumeFeature(projectPath, featureId, useWorktrees);
         }
-      }
-
-      // Load feature details FIRST to get branchName
-      feature = await this.loadFeature(projectPath, featureId);
-      if (!feature) {
-        throw new Error(`Feature ${featureId} not found`);
       }
 
       // Derive workDir from feature.branchName
@@ -1190,6 +1255,7 @@ export class AutoModeService {
           systemPrompt: combinedSystemPrompt || undefined,
           autoLoadClaudeMd,
           thinkingLevel: feature.thinkingLevel,
+          branchName: feature.branchName ?? null,
         }
       );
 
@@ -1361,6 +1427,7 @@ export class AutoModeService {
 
       this.emitAutoModeEvent('auto_mode_progress', {
         featureId,
+        branchName: feature.branchName ?? null,
         content: `Starting pipeline step ${i + 1}/${steps.length}: ${step.name}`,
         projectPath,
       });
@@ -2805,6 +2872,21 @@ Format your response as a structured markdown document.`;
     }
   }
 
+  private isFeatureFinished(feature: Feature): boolean {
+    const isCompleted = feature.status === 'completed' || feature.status === 'verified';
+
+    // Even if marked as completed, if it has an approved plan with pending tasks, it's not finished
+    if (feature.planSpec?.status === 'approved') {
+      const tasksCompleted = feature.planSpec.tasksCompleted ?? 0;
+      const tasksTotal = feature.planSpec.tasksTotal ?? 0;
+      if (tasksCompleted < tasksTotal) {
+        return false;
+      }
+    }
+
+    return isCompleted;
+  }
+
   /**
    * Update the planSpec of a feature
    */
@@ -2899,10 +2981,14 @@ Format your response as a structured markdown document.`;
           allFeatures.push(feature);
 
           // Track pending features separately, filtered by worktree/branch
+          // Note: waiting_approval is NOT included - those features have completed execution
+          // and are waiting for user review, they should not be picked up again
           if (
             feature.status === 'pending' ||
             feature.status === 'ready' ||
-            feature.status === 'backlog'
+            feature.status === 'backlog' ||
+            (feature.planSpec?.status === 'approved' &&
+              (feature.planSpec.tasksCompleted ?? 0) < (feature.planSpec.tasksTotal ?? 0))
           ) {
             // Filter by branchName:
             // - If branchName is null (main worktree), include features with branchName === null OR branchName === "main"
@@ -2934,7 +3020,7 @@ Format your response as a structured markdown document.`;
 
       const worktreeDesc = branchName ? `worktree ${branchName}` : 'main worktree';
       logger.info(
-        `[loadPendingFeatures] Found ${allFeatures.length} total features, ${pendingFeatures.length} with backlog/pending/ready status for ${worktreeDesc}`
+        `[loadPendingFeatures] Found ${allFeatures.length} total features, ${pendingFeatures.length} candidates (pending/ready/backlog/approved_with_pending_tasks) for ${worktreeDesc}`
       );
 
       if (pendingFeatures.length === 0) {
@@ -2943,7 +3029,12 @@ Format your response as a structured markdown document.`;
         );
         // Log all backlog features to help debug branchName matching
         const allBacklogFeatures = allFeatures.filter(
-          (f) => f.status === 'backlog' || f.status === 'pending' || f.status === 'ready'
+          (f) =>
+            f.status === 'backlog' ||
+            f.status === 'pending' ||
+            f.status === 'ready' ||
+            (f.planSpec?.status === 'approved' &&
+              (f.planSpec.tasksCompleted ?? 0) < (f.planSpec.tasksTotal ?? 0))
         );
         if (allBacklogFeatures.length > 0) {
           logger.info(
@@ -2953,7 +3044,43 @@ Format your response as a structured markdown document.`;
       }
 
       // Apply dependency-aware ordering
-      const { orderedFeatures } = resolveDependencies(pendingFeatures);
+      const { orderedFeatures, missingDependencies } = resolveDependencies(pendingFeatures);
+
+      // Remove missing dependencies from features and save them
+      // This allows features to proceed when their dependencies have been deleted or don't exist
+      if (missingDependencies.size > 0) {
+        for (const [featureId, missingDepIds] of missingDependencies) {
+          const feature = pendingFeatures.find((f) => f.id === featureId);
+          if (feature && feature.dependencies) {
+            // Filter out the missing dependency IDs
+            const validDependencies = feature.dependencies.filter(
+              (depId) => !missingDepIds.includes(depId)
+            );
+
+            logger.warn(
+              `[loadPendingFeatures] Feature ${featureId} has missing dependencies: ${missingDepIds.join(', ')}. Removing them automatically.`
+            );
+
+            // Update the feature in memory
+            feature.dependencies = validDependencies.length > 0 ? validDependencies : undefined;
+
+            // Save the updated feature to disk
+            try {
+              await this.featureLoader.update(projectPath, featureId, {
+                dependencies: feature.dependencies,
+              });
+              logger.info(
+                `[loadPendingFeatures] Updated feature ${featureId} - removed missing dependencies`
+              );
+            } catch (error) {
+              logger.error(
+                `[loadPendingFeatures] Failed to save feature ${featureId} after removing missing dependencies:`,
+                error
+              );
+            }
+          }
+        }
+      }
 
       // Get skipVerificationInAutoMode setting
       const settings = await this.settingsService?.getGlobalSettings();
@@ -3129,9 +3256,11 @@ You can use the Read tool to view these images at any time during implementation
       systemPrompt?: string;
       autoLoadClaudeMd?: boolean;
       thinkingLevel?: ThinkingLevel;
+      branchName?: string | null;
     }
   ): Promise<void> {
     const finalProjectPath = options?.projectPath || projectPath;
+    const branchName = options?.branchName ?? null;
     const planningMode = options?.planningMode || 'skip';
     const previousContent = options?.previousContent;
 
@@ -3496,6 +3625,7 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
                     this.emitAutoModeEvent('plan_approval_required', {
                       featureId,
                       projectPath,
+                      branchName,
                       planContent: currentPlanContent,
                       planningMode,
                       planVersion,
@@ -3527,6 +3657,7 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
                         this.emitAutoModeEvent('plan_approved', {
                           featureId,
                           projectPath,
+                          branchName,
                           hasEdits: !!approvalResult.editedPlan,
                           planVersion,
                         });
@@ -3555,6 +3686,7 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
                         this.emitAutoModeEvent('plan_revision_requested', {
                           featureId,
                           projectPath,
+                          branchName,
                           feedback: approvalResult.feedback,
                           hasEdits: !!hasEdits,
                           planVersion,
@@ -3658,6 +3790,7 @@ After generating the revised spec, output:
                   this.emitAutoModeEvent('plan_auto_approved', {
                     featureId,
                     projectPath,
+                    branchName,
                     planContent,
                     planningMode,
                   });
@@ -3708,6 +3841,7 @@ After generating the revised spec, output:
                     this.emitAutoModeEvent('auto_mode_task_started', {
                       featureId,
                       projectPath,
+                      branchName,
                       taskId: task.id,
                       taskDescription: task.description,
                       taskIndex,
@@ -3753,11 +3887,13 @@ After generating the revised spec, output:
                             responseText += block.text || '';
                             this.emitAutoModeEvent('auto_mode_progress', {
                               featureId,
+                              branchName,
                               content: block.text,
                             });
                           } else if (block.type === 'tool_use') {
                             this.emitAutoModeEvent('auto_mode_tool', {
                               featureId,
+                              branchName,
                               tool: block.name,
                               input: block.input,
                             });
@@ -3776,6 +3912,7 @@ After generating the revised spec, output:
                     this.emitAutoModeEvent('auto_mode_task_complete', {
                       featureId,
                       projectPath,
+                      branchName,
                       taskId: task.id,
                       tasksCompleted: taskIndex + 1,
                       tasksTotal: parsedTasks.length,
@@ -3796,6 +3933,7 @@ After generating the revised spec, output:
                           this.emitAutoModeEvent('auto_mode_phase_complete', {
                             featureId,
                             projectPath,
+                            branchName,
                             phaseNumber: parseInt(phaseMatch[1], 10),
                           });
                         }
@@ -3845,11 +3983,13 @@ After generating the revised spec, output:
                           responseText += block.text || '';
                           this.emitAutoModeEvent('auto_mode_progress', {
                             featureId,
+                            branchName,
                             content: block.text,
                           });
                         } else if (block.type === 'tool_use') {
                           this.emitAutoModeEvent('auto_mode_tool', {
                             featureId,
+                            branchName,
                             tool: block.name,
                             input: block.input,
                           });
@@ -3875,6 +4015,7 @@ After generating the revised spec, output:
                 );
                 this.emitAutoModeEvent('auto_mode_progress', {
                   featureId,
+                  branchName,
                   content: block.text,
                 });
               }
@@ -3882,6 +4023,7 @@ After generating the revised spec, output:
               // Emit event for real-time UI
               this.emitAutoModeEvent('auto_mode_tool', {
                 featureId,
+                branchName,
                 tool: block.name,
                 input: block.input,
               });
@@ -4287,6 +4429,7 @@ After generating the revised spec, output:
           id: f.id,
           title: f.title,
           status: f.status,
+          branchName: f.branchName ?? null,
         })),
       });
 

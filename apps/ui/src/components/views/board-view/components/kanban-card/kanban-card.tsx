@@ -1,6 +1,6 @@
 // @ts-nocheck
-import React, { memo, useLayoutEffect, useState } from 'react';
-import { useDraggable } from '@dnd-kit/core';
+import React, { memo, useLayoutEffect, useState, useCallback } from 'react';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -123,11 +123,38 @@ export const KanbanCard = memo(function KanbanCard({
     (feature.status === 'backlog' ||
       feature.status === 'waiting_approval' ||
       feature.status === 'verified' ||
+      feature.status.startsWith('pipeline_') ||
       (feature.status === 'in_progress' && !isCurrentAutoTask));
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDraggableRef,
+    isDragging,
+  } = useDraggable({
     id: feature.id,
     disabled: !isDraggable || isOverlay || isSelectionMode,
   });
+
+  // Make the card a drop target for creating dependency links
+  // Only backlog cards can be link targets (to avoid complexity with running features)
+  const isDroppable = !isOverlay && feature.status === 'backlog' && !isSelectionMode;
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+    id: `card-drop-${feature.id}`,
+    disabled: !isDroppable,
+    data: {
+      type: 'card',
+      featureId: feature.id,
+    },
+  });
+
+  // Combine refs for both draggable and droppable
+  const setNodeRef = useCallback(
+    (node: HTMLElement | null) => {
+      setDraggableRef(node);
+      setDroppableRef(node);
+    },
+    [setDraggableRef, setDroppableRef]
+  );
 
   const dndStyle = {
     opacity: isDragging ? 0.5 : undefined,
@@ -141,7 +168,9 @@ export const KanbanCard = memo(function KanbanCard({
   const wrapperClasses = cn(
     'relative select-none outline-none touch-none transition-transform duration-200 ease-out',
     getCursorClass(isOverlay, isDraggable, isSelectable),
-    isOverlay && isLifted && 'scale-105 rotate-1 z-50'
+    isOverlay && isLifted && 'scale-105 rotate-1 z-50',
+    // Visual feedback when another card is being dragged over this one
+    isOver && !isDragging && 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-[1.02]'
   );
 
   const isInteractive = !isDragging && !isOverlay;

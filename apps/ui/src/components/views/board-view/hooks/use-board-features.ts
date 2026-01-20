@@ -123,7 +123,9 @@ export function useBoardFeatures({ currentProject }: UseBoardFeaturesProps) {
       } else if (event.type === 'auto_mode_error') {
         // Remove from running tasks
         if (event.featureId) {
-          removeRunningTask(eventProjectId, event.featureId);
+          const eventBranchName =
+            'branchName' in event && event.branchName !== undefined ? event.branchName : null;
+          removeRunningTask(eventProjectId, eventBranchName, event.featureId);
         }
 
         // Show error toast

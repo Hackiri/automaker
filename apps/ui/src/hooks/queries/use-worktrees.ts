@@ -160,6 +160,7 @@ interface BranchesResult {
   branches: BranchInfo[];
   aheadCount: number;
   behindCount: number;
+  hasRemoteBranch: boolean;
   isGitRepo: boolean;
   hasCommits: boolean;
 }
@@ -186,6 +187,7 @@ export function useWorktreeBranches(worktreePath: string | undefined, includeRem
           branches: [],
           aheadCount: 0,
           behindCount: 0,
+          hasRemoteBranch: false,
           isGitRepo: false,
           hasCommits: false,
         };
@@ -195,6 +197,7 @@ export function useWorktreeBranches(worktreePath: string | undefined, includeRem
           branches: [],
           aheadCount: 0,
           behindCount: 0,
+          hasRemoteBranch: false,
           isGitRepo: true,
           hasCommits: false,
         };
@@ -208,6 +211,7 @@ export function useWorktreeBranches(worktreePath: string | undefined, includeRem
         branches: result.result?.branches ?? [],
         aheadCount: result.result?.aheadCount ?? 0,
         behindCount: result.result?.behindCount ?? 0,
+        hasRemoteBranch: result.result?.hasRemoteBranch ?? false,
         isGitRepo: true,
         hasCommits: true,
       };

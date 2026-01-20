@@ -4,6 +4,7 @@ import { Globe, CircleDot, GitPullRequest } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useDroppable } from '@dnd-kit/core';
 import type { WorktreeInfo, BranchInfo, DevServerInfo, PRInfo, GitRepoStatus } from '../types';
 import { BranchSwitchDropdown } from './branch-switch-dropdown';
 import { WorktreeActionsDropdown } from './worktree-actions-dropdown';
@@ -28,6 +29,7 @@ interface WorktreeTabProps {
   isStartingDevServer: boolean;
   aheadCount: number;
   behindCount: number;
+  hasRemoteBranch: boolean;
   gitRepoStatus: GitRepoStatus;
   /** Whether auto mode is running for this worktree */
   isAutoModeRunning?: boolean;
@@ -39,6 +41,7 @@ interface WorktreeTabProps {
   onCreateBranch: (worktree: WorktreeInfo) => void;
   onPull: (worktree: WorktreeInfo) => void;
   onPush: (worktree: WorktreeInfo) => void;
+  onPushNewBranch: (worktree: WorktreeInfo) => void;
   onOpenInEditor: (worktree: WorktreeInfo, editorCommand?: string) => void;
   onOpenInIntegratedTerminal: (worktree: WorktreeInfo, mode?: 'tab' | 'split') => void;
   onOpenInExternalTerminal: (worktree: WorktreeInfo, terminalId?: string) => void;
@@ -79,6 +82,7 @@ export function WorktreeTab({
   isStartingDevServer,
   aheadCount,
   behindCount,
+  hasRemoteBranch,
   gitRepoStatus,
   isAutoModeRunning = false,
   onSelectWorktree,
@@ -89,6 +93,7 @@ export function WorktreeTab({
   onCreateBranch,
   onPull,
   onPush,
+  onPushNewBranch,
   onOpenInEditor,
   onOpenInIntegratedTerminal,
   onOpenInExternalTerminal,
@@ -108,6 +113,16 @@ export function WorktreeTab({
   onToggleAutoMode,
   hasInitScript,
 }: WorktreeTabProps) {
+  // Make the worktree tab a drop target for feature cards
+  const { setNodeRef, isOver } = useDroppable({
+    id: `worktree-drop-${worktree.branch}`,
+    data: {
+      type: 'worktree',
+      branch: worktree.branch,
+      path: worktree.path,
+      isMain: worktree.isMain,
+    },
+  });
   let prBadge: JSX.Element | null = null;
   if (worktree.pr) {
     const prState = worktree.pr.state?.toLowerCase() ?? 'open';
@@ -194,7 +209,13 @@ export function WorktreeTab({
   }
 
   return (
-    <div className="flex items-center rounded-md">
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'flex items-center rounded-md transition-all duration-150',
+        isOver && 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105'
+      )}
+    >
       {worktree.isMain ? (
         <>
           <Button
@@ -366,6 +387,7 @@ export function WorktreeTab({
         isSelected={isSelected}
         aheadCount={aheadCount}
         behindCount={behindCount}
+        hasRemoteBranch={hasRemoteBranch}
         isPulling={isPulling}
         isPushing={isPushing}
         isStartingDevServer={isStartingDevServer}
@@ -376,6 +398,7 @@ export function WorktreeTab({
         onOpenChange={onActionsDropdownOpenChange}
         onPull={onPull}
         onPush={onPush}
+        onPushNewBranch={onPushNewBranch}
         onOpenInEditor={onOpenInEditor}
         onOpenInIntegratedTerminal={onOpenInIntegratedTerminal}
         onOpenInExternalTerminal={onOpenInExternalTerminal}

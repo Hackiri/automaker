@@ -1763,8 +1763,16 @@ export class HttpApiClient implements ElectronAPI {
       projectPath: string,
       branchName: string,
       worktreePath: string,
+      targetBranch?: string,
       options?: object
-    ) => this.post('/api/worktree/merge', { projectPath, branchName, worktreePath, options }),
+    ) =>
+      this.post('/api/worktree/merge', {
+        projectPath,
+        branchName,
+        worktreePath,
+        targetBranch,
+        options,
+      }),
     getInfo: (projectPath: string, featureId: string) =>
       this.post('/api/worktree/info', { projectPath, featureId }),
     getStatus: (projectPath: string, featureId: string) =>
@@ -1788,8 +1796,8 @@ export class HttpApiClient implements ElectronAPI {
       this.post('/api/worktree/commit', { worktreePath, message }),
     generateCommitMessage: (worktreePath: string) =>
       this.post('/api/worktree/generate-commit-message', { worktreePath }),
-    push: (worktreePath: string, force?: boolean) =>
-      this.post('/api/worktree/push', { worktreePath, force }),
+    push: (worktreePath: string, force?: boolean, remote?: string) =>
+      this.post('/api/worktree/push', { worktreePath, force, remote }),
     createPR: (worktreePath: string, options?: any) =>
       this.post('/api/worktree/create-pr', { worktreePath, ...options }),
     getDiffs: (projectPath: string, featureId: string) =>
@@ -1807,6 +1815,8 @@ export class HttpApiClient implements ElectronAPI {
       this.post('/api/worktree/list-branches', { worktreePath, includeRemote }),
     switchBranch: (worktreePath: string, branchName: string) =>
       this.post('/api/worktree/switch-branch', { worktreePath, branchName }),
+    listRemotes: (worktreePath: string) =>
+      this.post('/api/worktree/list-remotes', { worktreePath }),
     openInEditor: (worktreePath: string, editorCommand?: string) =>
       this.post('/api/worktree/open-in-editor', { worktreePath, editorCommand }),
     getDefaultEditor: () => this.get('/api/worktree/default-editor'),
