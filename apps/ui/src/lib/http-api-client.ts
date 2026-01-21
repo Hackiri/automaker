@@ -16,12 +16,9 @@ import type {
   SaveImageResult,
   AutoModeAPI,
   FeaturesAPI,
-  SuggestionsAPI,
   SpecRegenerationAPI,
   AutoModeEvent,
-  SuggestionsEvent,
   SpecRegenerationEvent,
-  SuggestionType,
   GitHubAPI,
   IssueValidationInput,
   IssueValidationEvent,
@@ -550,7 +547,6 @@ export const checkSandboxEnvironment = async (): Promise<{
 type EventType =
   | 'agent:stream'
   | 'auto-mode:event'
-  | 'suggestions:event'
   | 'spec-regeneration:event'
   | 'issue-validation:event'
   | 'backlog-plan:event'
@@ -1981,22 +1977,6 @@ export class HttpApiClient implements ElectronAPI {
     getDiffs: (projectPath: string) => this.post('/api/git/diffs', { projectPath }),
     getFileDiff: (projectPath: string, filePath: string) =>
       this.post('/api/git/file-diff', { projectPath, filePath }),
-  };
-
-  // Suggestions API
-  suggestions: SuggestionsAPI = {
-    generate: (
-      projectPath: string,
-      suggestionType?: SuggestionType,
-      model?: string,
-      thinkingLevel?: string
-    ) =>
-      this.post('/api/suggestions/generate', { projectPath, suggestionType, model, thinkingLevel }),
-    stop: () => this.post('/api/suggestions/stop'),
-    status: () => this.get('/api/suggestions/status'),
-    onEvent: (callback: (event: SuggestionsEvent) => void) => {
-      return this.subscribeToEvent('suggestions:event', callback as EventCallback);
-    },
   };
 
   // Spec Regeneration API
