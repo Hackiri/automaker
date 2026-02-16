@@ -14,6 +14,7 @@ import {
   Bell,
   Settings,
   Home,
+  Wand2,
 } from 'lucide-react';
 import type { NavSection, NavItem } from '../types';
 import type { KeyboardShortcut } from '@/hooks/use-keyboard-shortcuts';
@@ -128,6 +129,11 @@ export function useNavigation({
         label: 'Memory',
         icon: Brain,
         shortcut: shortcuts.memory,
+      },
+      {
+        id: 'skills',
+        label: 'Skills',
+        icon: Wand2,
       },
     ];
 

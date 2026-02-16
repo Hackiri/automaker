@@ -95,3 +95,6 @@ data/.api-key
 data/credentials.json
 data/
 .codex/
+
+# Auto Claude data directory
+.auto-claude/
